@@ -8,35 +8,55 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Cyberpunk Neon Color Palette */
+    --background: 240 95% 4%;
+    --foreground: 180 100% 85%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 240 95% 6%;
+    --card-foreground: 180 100% 85%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 240 95% 6%;
+    --popover-foreground: 180 100% 85%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 280 100% 70%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 180 100% 50%;
+    --secondary-foreground: 240 95% 4%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 20% 20%;
+    --muted-foreground: 180 50% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 30 100% 60%;
+    --accent-foreground: 240 95% 4%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 100% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 240 50% 15%;
+    --input: 240 50% 15%;
+    --ring: 280 100% 70%;
 
     --radius: 0.5rem;
+
+    /* Neon Glow Effects */
+    --neon-cyan: 180 100% 50%;
+    --neon-purple: 280 100% 70%;
+    --neon-orange: 30 100% 60%;
+    --neon-pink: 320 100% 70%;
+    
+    /* Gradients */
+    --gradient-cyber: linear-gradient(135deg, hsl(var(--neon-purple)), hsl(var(--neon-cyan)));
+    --gradient-bg: linear-gradient(180deg, hsl(240 95% 4%), hsl(260 90% 8%));
+    
+    /* Shadows and Glows */
+    --shadow-neon: 0 0 20px hsl(var(--neon-cyan) / 0.5), 0 0 40px hsl(var(--neon-cyan) / 0.3);
+    --shadow-purple: 0 0 20px hsl(var(--neon-purple) / 0.5), 0 0 40px hsl(var(--neon-purple) / 0.3);
+    --shadow-orange: 0 0 20px hsl(var(--neon-orange) / 0.5), 0 0 40px hsl(var(--neon-orange) / 0.3);
+    
+    /* Animations */
+    --transition-glow: all 0.3s ease-in-out;
+    --pulse-duration: 2s;
 
     --sidebar-background: 0 0% 98%;
 
@@ -101,5 +121,141 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    background: var(--gradient-bg);
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  /* Game UI Components */
+  .game-container {
+    @apply relative w-full h-screen bg-gradient-to-b from-background to-card;
+    overflow: hidden;
+  }
+
+  .game-canvas {
+    @apply w-full h-full;
+  }
+
+  .game-ui {
+    @apply absolute top-4 left-4 z-10;
+  }
+
+  .game-score {
+    @apply text-secondary font-bold text-lg;
+    text-shadow: var(--shadow-neon);
+    font-family: 'Courier New', monospace;
+  }
+
+  .game-controls {
+    @apply absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-6 z-10;
+  }
+
+  .control-btn {
+    @apply w-16 h-16 bg-card/20 border-2 border-secondary/30 rounded-full flex items-center justify-center;
+    backdrop-filter: blur(10px);
+    transition: var(--transition-glow);
+    box-shadow: var(--shadow-neon);
+  }
+
+  .control-btn:hover, .control-btn:active {
+    @apply bg-secondary/20 border-secondary;
+    box-shadow: var(--shadow-neon), 0 0 30px hsl(var(--secondary) / 0.4);
+    transform: scale(1.05);
+  }
+
+  .neon-text {
+    @apply text-secondary font-bold;
+    text-shadow: var(--shadow-neon);
+    font-family: 'Courier New', monospace;
+  }
+
+  .neon-title {
+    @apply text-4xl font-bold text-center;
+    background: var(--gradient-cyber);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: var(--shadow-purple);
+    font-family: 'Courier New', monospace;
+  }
+
+  .laser-beam {
+    @apply absolute bg-primary;
+    width: 3px;
+    box-shadow: var(--shadow-purple);
+    animation: pulse var(--pulse-duration) infinite;
+  }
+
+  .falling-letter {
+    @apply absolute text-secondary text-3xl font-bold;
+    text-shadow: var(--shadow-neon);
+    font-family: 'Courier New', monospace;
+    animation: letterGlow var(--pulse-duration) infinite alternate;
+  }
+
+  .spaceship {
+    @apply absolute;
+    filter: drop-shadow(0 0 10px hsl(var(--neon-cyan) / 0.7));
+  }
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: var(--shadow-neon);
+  }
+
+  .text-glow-purple {
+    text-shadow: var(--shadow-purple);
+  }
+
+  .text-glow-orange {
+    text-shadow: var(--shadow-orange);
+  }
+
+  .neon-border {
+    border: 1px solid hsl(var(--secondary));
+    box-shadow: var(--shadow-neon);
+  }
+
+  .neon-border-purple {
+    border: 1px solid hsl(var(--primary));
+    box-shadow: var(--shadow-purple);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes letterGlow {
+  0% {
+    text-shadow: var(--shadow-neon);
+  }
+  100% {
+    text-shadow: var(--shadow-neon), 0 0 30px hsl(var(--secondary) / 0.8);
+  }
+}
+
+@keyframes neonFlicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes cityScroll {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100px);
   }
 }
