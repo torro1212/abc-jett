@@ -45,17 +45,20 @@ const shootButtonStyles = `
     left: 0;
     width: 100%;
     height: 200px;
-    display: flex;
+    display: flex !important;
     justify-content: space-between;
     align-items: flex-end;
     padding: 20px;
     z-index: 30;
-    pointer-events: none;
+    pointer-events: auto;
   }
   
   .mobile-joystick {
-    pointer-events: auto;
+    pointer-events: auto !important;
     z-index: 40;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   
   .mobile-shoot-btn {
@@ -99,6 +102,9 @@ const shootButtonStyles = `
     .game-controls {
       height: 150px;
       padding: 15px;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: flex-end !important;
     }
     
     .neon-title {
@@ -607,6 +613,7 @@ const ABCJetGame: React.FC = () => {
   const animationRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
   const lastLetterSpawnRef = useRef<number>(0);
+  const lastCorrectLetterSpawnRef = useRef<number>(0);
   const lastPowerUpSpawnRef = useRef<number>(0);
   const bulletIdRef = useRef<number>(0);
   const letterIdRef = useRef<number>(0);
@@ -937,7 +944,22 @@ const ABCJetGame: React.FC = () => {
 
       // Spawn new letters with mobile-optimized spawn rate
       if (currentTime - lastLetterSpawnRef.current > settings.spawnRate) {
-        const char = alphabet[Math.floor(Math.random() * alphabet.length)];
+        const correctLetter = alphabet[newState.currentLetterIndex];
+        const timeSinceCorrectLetter = currentTime - lastCorrectLetterSpawnRef.current;
+        
+        // Force spawn correct letter if it hasn't appeared for 10 seconds
+        let char;
+        if (timeSinceCorrectLetter > 10000) { // 10 seconds = 10000 milliseconds
+          char = correctLetter;
+          lastCorrectLetterSpawnRef.current = currentTime;
+        } else {
+          char = alphabet[Math.floor(Math.random() * alphabet.length)];
+          // Update the correct letter spawn time if we randomly spawned it
+          if (char === correctLetter) {
+            lastCorrectLetterSpawnRef.current = currentTime;
+          }
+        }
+        
         newState.letters = [...newState.letters, {
           x: Math.random() * (newState.gameWidth - 50),
           y: -50,
@@ -1591,19 +1613,6 @@ const ABCJetGame: React.FC = () => {
           <p className={`neon-text ${gameState.isStartAnimation ? 'title-fade-out' : ''} ${isMobile() ? 'text-base px-4' : 'text-2xl'}`}>Welcome to the ultimate alphabet challenge!</p>
           <div className={`flex justify-center mt-8 ${gameState.isStartAnimation ? 'title-fade-out' : ''} ${isMobile() ? 'flex-col space-y-4 px-4' : 'space-x-6'}`}>
             <button
-              onClick={showInstructions}
-              onMouseDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              className={`mobile-btn control-btn neon-text ${isMobile() ? 'w-full h-12 text-sm' : 'w-40 h-16 text-xl'}`}
-              style={{
-                touchAction: 'manipulation',
-                pointerEvents: 'auto'
-              }}
-              disabled={gameState.isStartAnimation}
-            >
-              HOW TO PLAY
-            </button>
-            <button
               onClick={startGame}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
@@ -1620,6 +1629,19 @@ const ABCJetGame: React.FC = () => {
               disabled={gameState.isStartAnimation}
             >
               {gameState.isStartAnimation ? 'LAUNCHING...' : 'START GAME'}
+            </button>
+            <button
+              onClick={showInstructions}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              className={`mobile-btn control-btn neon-text ${isMobile() ? 'w-full h-12 text-sm' : 'w-40 h-16 text-xl'}`}
+              style={{
+                touchAction: 'manipulation',
+                pointerEvents: 'auto'
+              }}
+              disabled={gameState.isStartAnimation}
+            >
+              HOW TO PLAY
             </button>
           </div>
         </div>
@@ -1902,7 +1924,10 @@ const ABCJetGame: React.FC = () => {
         filter: gameState.gameOver ? 'blur(2px)' : 'none',
         opacity: gameState.gameOver ? 0.3 : 1,
         pointerEvents: gameState.gameOver ? 'none' : 'auto',
-        transition: 'filter 0.3s ease, opacity 0.3s ease'
+        transition: 'filter 0.3s ease, opacity 0.3s ease',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end'
       }}>
         <Joystick onMove={handleJoystickMove} size={isMobile() ? 100 : 120} />
         
