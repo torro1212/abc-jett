@@ -123,6 +123,25 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
     background: var(--gradient-bg);
     overflow: hidden;
+    /* Mobile optimizations */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Mobile viewport fix */
+  html {
+    height: 100%;
+    height: -webkit-fill-available;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 }
 
@@ -131,24 +150,57 @@ All colors MUST be HSL.
   .game-container {
     @apply relative w-full h-screen bg-gradient-to-b from-background to-card;
     overflow: hidden;
+    /* Mobile optimizations */
+    height: 100vh;
+    height: -webkit-fill-available;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 
   .game-canvas {
     @apply w-full h-full;
+    /* Mobile canvas optimizations */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
 
   .game-ui {
-    @apply absolute top-4 left-4 z-10;
+    @apply absolute top-0 left-0 w-full h-full pointer-events-none z-40;
+    /* Mobile UI adjustments */
+    @media (max-width: 768px) {
+      top: 0;
+      left: 0;
+    }
   }
 
   .game-score {
     @apply text-secondary font-bold text-lg;
     text-shadow: var(--shadow-neon);
     font-family: 'Courier New', monospace;
+    /* Mobile score adjustments */
+    @media (max-width: 768px) {
+      font-size: 1rem;
+      line-height: 1.5rem;
+    }
   }
 
   .game-controls {
-    @apply absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-6 z-10;
+    @apply absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-6 z-30 pointer-events-auto;
+    /* Mobile controls adjustments */
+    @media (max-width: 768px) {
+      bottom: 0.5rem;
+      gap: 1rem;
+      justify-content: space-between;
+      width: 90%;
+      max-width: 300px;
+    }
   }
 
   .control-btn {
@@ -156,6 +208,13 @@ All colors MUST be HSL.
     backdrop-filter: blur(10px);
     transition: var(--transition-glow);
     box-shadow: var(--shadow-neon);
+    /* Mobile button optimizations */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    @media (max-width: 768px) {
+      width: 3.5rem;
+      height: 3.5rem;
+    }
   }
 
   .control-btn:hover, .control-btn:active {
@@ -168,6 +227,11 @@ All colors MUST be HSL.
     @apply text-secondary font-bold;
     text-shadow: var(--shadow-neon);
     font-family: 'Courier New', monospace;
+    /* Mobile text optimizations */
+    @media (max-width: 768px) {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
   }
 
   .neon-title {
@@ -178,6 +242,15 @@ All colors MUST be HSL.
     background-clip: text;
     text-shadow: var(--shadow-purple);
     font-family: 'Courier New', monospace;
+    /* Mobile title optimizations */
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+    @media (max-width: 480px) {
+      font-size: 1.25rem;
+      line-height: 1.75rem;
+    }
   }
 
   .laser-beam {
@@ -185,6 +258,10 @@ All colors MUST be HSL.
     width: 3px;
     box-shadow: var(--shadow-purple);
     animation: pulse var(--pulse-duration) infinite;
+    /* Mobile laser optimizations */
+    @media (max-width: 768px) {
+      width: 2px;
+    }
   }
 
   .falling-letter {
@@ -192,11 +269,81 @@ All colors MUST be HSL.
     text-shadow: var(--shadow-neon);
     font-family: 'Courier New', monospace;
     animation: letterGlow var(--pulse-duration) infinite alternate;
+    /* Mobile letter optimizations */
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+    @media (max-width: 480px) {
+      font-size: 1.25rem;
+      line-height: 1.75rem;
+    }
   }
 
   .spaceship {
     @apply absolute;
     filter: drop-shadow(0 0 10px hsl(var(--neon-cyan) / 0.7));
+    /* Mobile spaceship optimizations */
+    @media (max-width: 768px) {
+      filter: drop-shadow(0 0 8px hsl(var(--neon-cyan) / 0.7));
+    }
+  }
+
+  /* Mobile joystick optimizations */
+  .mobile-joystick {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 100;
+    touch-action: none;
+    @media (max-width: 768px) {
+      bottom: 15px;
+      left: 15px;
+    }
+  }
+
+  /* Mobile shoot button optimizations */
+  .mobile-shoot-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    @media (max-width: 768px) {
+      bottom: 15px;
+      right: 15px;
+    }
+  }
+
+  /* Mobile UI panel optimizations */
+  .mobile-ui-panel {
+    @media (max-width: 768px) {
+      padding: 8px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+    }
+    @media (max-width: 480px) {
+      padding: 6px 10px;
+      border-radius: 6px;
+      backdrop-filter: blur(6px);
+    }
+  }
+
+  /* Mobile button optimizations */
+  .mobile-btn {
+    @media (max-width: 768px) {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    @media (max-width: 480px) {
+      min-height: 40px;
+      min-width: 40px;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
   }
 }
 
