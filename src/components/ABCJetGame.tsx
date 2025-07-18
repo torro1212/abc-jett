@@ -6,9 +6,63 @@ import back2 from '@/assets/back2.png';
 import spaceshipImg from '@/assets/spaceship.png';
 import shootButtonImg from '@/assets/ShootButton.png';
 import shootBulletImg from '@/assets/ShootBullet.png';
+import puX2Img from '@/assets/PUX2.png';
+import puShieldImg from '@/assets/PUshild.png';
+import puLiveImg from '@/assets/PULive.png';
 
 // Add CSS animations for the shoot button with mobile optimizations
 const shootButtonStyles = `
+  .game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+  }
+  
+  .game-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+  
+  .game-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 20;
+    pointer-events: none;
+  }
+  
+  .game-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 200px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 20px;
+    z-index: 30;
+    pointer-events: none;
+  }
+  
+  .mobile-joystick {
+    pointer-events: auto;
+    z-index: 40;
+  }
+  
+  .mobile-shoot-btn {
+    pointer-events: auto;
+    z-index: 40;
+  }
+  
   @keyframes shoot-button-pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.08); }
@@ -40,6 +94,11 @@ const shootButtonStyles = `
       left: 0;
       right: 0;
       bottom: 0;
+    }
+    
+    .game-controls {
+      height: 150px;
+      padding: 15px;
     }
     
     .neon-title {
@@ -323,7 +382,11 @@ const getOptimizedSettings = () => {
     maxBullets: mobile ? 15 : 25,
     maxLetters: mobile ? 8 : 12,
     animationQuality: mobile ? 'low' : 'high',
-    glowIntensity: mobile ? 0.7 : 1.0
+    glowIntensity: mobile ? 0.7 : 1.0,
+    powerUpSpeed: mobile ? 2 : 3,
+    powerUpSpawnRate: mobile ? 8000 : 6000, // Power-ups spawn every 6-8 seconds
+    doubleShotDuration: mobile ? 8000 : 10000, // Double shot lasts 8-10 seconds
+    shieldDuration: 10000 // Shield lasts 10 seconds
   };
 };
 
@@ -345,6 +408,12 @@ interface GameState {
     char: string;
     id: number;
   }>;
+  powerUps: Array<{
+    x: number;
+    y: number;
+    type: 'doubleShot' | 'extraLife' | 'shield';
+    id: number;
+  }>;
   score: number;
   currentLetterIndex: number; // Current letter to catch in ABC order
   penalties: number; // Strike count
@@ -355,6 +424,10 @@ interface GameState {
   currentScreen: 'start' | 'instructions' | 'game' | 'gameOver';
   selectedBackgroundIndex: number; // Index of the selected background
   isStartAnimation: boolean; // Animation state for start screen
+  doubleShotActive: boolean; // Whether double shot is active
+  doubleShotTimeLeft: number; // Time left for double shot effect
+  shieldActive: boolean; // Whether shield is active
+  shieldTimeLeft: number; // Time left for shield effect
 }
 
 interface JoystickProps {
@@ -534,9 +607,12 @@ const ABCJetGame: React.FC = () => {
   const animationRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
   const lastLetterSpawnRef = useRef<number>(0);
+  const lastPowerUpSpawnRef = useRef<number>(0);
   const bulletIdRef = useRef<number>(0);
   const letterIdRef = useRef<number>(0);
+  const powerUpIdRef = useRef<number>(0);
   const [currentDirection, setCurrentDirection] = useState<{ x: 'left' | 'right' | 'center', y: 'up' | 'down' | 'center' }>({ x: 'center', y: 'center' });
+  const [keyboardDirection, setKeyboardDirection] = useState<{ x: 'left' | 'right' | 'center', y: 'up' | 'down' | 'center' }>({ x: 'center', y: 'center' });
   const [isShooting, setIsShooting] = useState(false);
   const shootIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
@@ -548,6 +624,9 @@ const ABCJetGame: React.FC = () => {
   const backgroundImagesRef = useRef<HTMLImageElement[]>([]);
   const spaceshipImageRef = useRef<HTMLImageElement | null>(null);
   const bulletImageRef = useRef<HTMLImageElement | null>(null);
+  const puX2ImageRef = useRef<HTMLImageElement | null>(null);
+  const puShieldImageRef = useRef<HTMLImageElement | null>(null);
+  const puLiveImageRef = useRef<HTMLImageElement | null>(null);
   
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
   
@@ -560,6 +639,7 @@ const ABCJetGame: React.FC = () => {
     },
     bullets: [],
     letters: [],
+    powerUps: [],
     score: 0,
     currentLetterIndex: 0, // Starting with 'A'
     penalties: 0,
@@ -570,6 +650,10 @@ const ABCJetGame: React.FC = () => {
     currentScreen: 'start',
     selectedBackgroundIndex: Math.floor(Math.random() * BACKGROUND_IMAGES.length), // Random background selection
     isStartAnimation: false, // Animation state for start screen
+    doubleShotActive: false,
+    doubleShotTimeLeft: 0,
+    shieldActive: false,
+    shieldTimeLeft: 0,
   });
 
   // Load images once
@@ -583,9 +667,12 @@ const ABCJetGame: React.FC = () => {
       bgImg.src = bgData.src;
     });
     
-    // Load other images
+        // Load other images
     const shipImg = new Image();
     const bulletImg = new Image();
+    const puX2Image = new Image();
+    const puShieldImage = new Image();
+    const puLiveImage = new Image();
     
     shipImg.onload = () => {
       spaceshipImageRef.current = shipImg;
@@ -595,8 +682,23 @@ const ABCJetGame: React.FC = () => {
       bulletImageRef.current = bulletImg;
     };
     
+    puX2Image.onload = () => {
+      puX2ImageRef.current = puX2Image;
+    };
+    
+    puShieldImage.onload = () => {
+      puShieldImageRef.current = puShieldImage;
+    };
+    
+    puLiveImage.onload = () => {
+      puLiveImageRef.current = puLiveImage;
+    };
+    
     shipImg.src = spaceshipImg;
     bulletImg.src = shootBulletImg;
+    puX2Image.src = puX2Img;
+    puShieldImage.src = puShieldImg;
+    puLiveImage.src = puLiveImg;
   }, []);
 
   // Movement will be handled directly in the game loop for ultra-smooth movement
@@ -624,6 +726,69 @@ const ABCJetGame: React.FC = () => {
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
+  // Keyboard movement support for desktop
+  useEffect(() => {
+    if (isMobile()) return; // Only enable keyboard on desktop
+    
+    const keysPressed = new Set<string>();
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState.gameOver) return;
+      
+      const key = e.key.toLowerCase();
+      keysPressed.add(key);
+      
+      // Update keyboard direction based on pressed keys
+      let x: 'left' | 'right' | 'center' = 'center';
+      let y: 'up' | 'down' | 'center' = 'center';
+      
+      if (keysPressed.has('a') || keysPressed.has('arrowleft')) {
+        x = 'left';
+      } else if (keysPressed.has('d') || keysPressed.has('arrowright')) {
+        x = 'right';
+      }
+      
+      if (keysPressed.has('w') || keysPressed.has('arrowup')) {
+        y = 'up';
+      } else if (keysPressed.has('s') || keysPressed.has('arrowdown')) {
+        y = 'down';
+      }
+      
+      setKeyboardDirection({ x, y });
+    };
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      keysPressed.delete(key);
+      
+      // Update keyboard direction based on remaining pressed keys
+      let x: 'left' | 'right' | 'center' = 'center';
+      let y: 'up' | 'down' | 'center' = 'center';
+      
+      if (keysPressed.has('a') || keysPressed.has('arrowleft')) {
+        x = 'left';
+      } else if (keysPressed.has('d') || keysPressed.has('arrowright')) {
+        x = 'right';
+      }
+      
+      if (keysPressed.has('w') || keysPressed.has('arrowup')) {
+        y = 'up';
+      } else if (keysPressed.has('s') || keysPressed.has('arrowdown')) {
+        y = 'down';
+      }
+      
+      setKeyboardDirection({ x, y });
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [gameState.gameOver]);
+
   // Game loop with mobile optimizations
   const gameLoop = useCallback((currentTime: number) => {
     if (!canvasRef.current || gameState.gameOver) return;
@@ -649,6 +814,53 @@ const ABCJetGame: React.FC = () => {
 
     // Draw spaceship only if image is loaded
     if (spaceshipImageRef.current) {
+      // Draw shield circle if shield is active
+      if (gameState.shieldActive) {
+        const centerX = gameState.ship.x + gameState.ship.width / 2;
+        const centerY = gameState.ship.y + gameState.ship.height / 2;
+        const shieldRadius = ((gameState.ship.width + gameState.ship.height) / 2 + (isMobile() ? 15 : 20)) * 0.5;
+        
+        // Draw outer shield glow
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, shieldRadius, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = isMobile() ? 2 : 3;
+        ctx.shadowColor = '#00aaff';
+        ctx.shadowBlur = isMobile() ? 20 : 25;
+        ctx.globalAlpha = 0.8;
+        ctx.stroke();
+        
+        // Draw inner shield ring
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, shieldRadius - 5, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = isMobile() ? 10 : 15;
+        ctx.globalAlpha = 0.6;
+        ctx.stroke();
+        
+        // Draw animated shield particles
+        const time = Date.now() * 0.002;
+        for (let i = 0; i < 8; i++) {
+          const angle = (i * Math.PI * 2 / 8) + time;
+          const particleX = centerX + Math.cos(angle) * shieldRadius;
+          const particleY = centerY + Math.sin(angle) * shieldRadius;
+          
+          ctx.beginPath();
+          ctx.arc(particleX, particleY, isMobile() ? 2 : 3, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = '#00aaff';
+          ctx.shadowBlur = isMobile() ? 8 : 12;
+          ctx.globalAlpha = 0.7 + Math.sin(time * 3 + i) * 0.3;
+          ctx.fill();
+        }
+        
+        // Reset shadow and alpha
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
+      
       // Add subtle outer white glow (30% increase)
       ctx.shadowColor = '#ffffff';
       ctx.shadowBlur = isMobile() ? 39 : 52;
@@ -677,22 +889,28 @@ const ABCJetGame: React.FC = () => {
       
       let newState = { ...prev };
       
-      // Update ship position based on joystick (ultra-smooth movement)
+      // Update ship position based on joystick and keyboard (ultra-smooth movement)
       let newShipX = newState.ship.x;
       let newShipY = newState.ship.y;
       
+      // Combine joystick and keyboard direction (keyboard overrides joystick on desktop)
+      const activeDirection = isMobile() ? currentDirection : {
+        x: keyboardDirection.x !== 'center' ? keyboardDirection.x : currentDirection.x,
+        y: keyboardDirection.y !== 'center' ? keyboardDirection.y : currentDirection.y,
+      };
+      
       // Ultra-smooth movement - mobile-optimized
       const moveSpeed = Math.min(deltaTime * (isMobile() ? 0.3 : 0.4), isMobile() ? 10 : 12); // Mobile-optimized speed
-      if (currentDirection.x === 'left') {
+      if (activeDirection.x === 'left') {
         newShipX = Math.max(newState.ship.x - moveSpeed, 0);
-      } else if (currentDirection.x === 'right') {
+      } else if (activeDirection.x === 'right') {
         newShipX = Math.min(newState.ship.x + moveSpeed, newState.gameWidth - newState.ship.width);
       }
       
       // Vertical movement - integrated into game loop for maximum smoothness
-      if (currentDirection.y === 'up') {
+      if (activeDirection.y === 'up') {
         newShipY = Math.max(newState.ship.y - moveSpeed, newState.gameHeight * 0.3);
-      } else if (currentDirection.y === 'down') {
+      } else if (activeDirection.y === 'down') {
         newShipY = Math.min(newState.ship.y + moveSpeed, newState.gameHeight - newState.ship.height - 20);
       }
       
@@ -777,14 +995,20 @@ const ABCJetGame: React.FC = () => {
             newScore += 2;
             newCurrentLetterIndex = (newCurrentLetterIndex + 1) % alphabet.length;
           } else {
-            // Wrong letter caught - penalty and go back 2 letters
-            newPenalties += 1;
-            newCurrentLetterIndex = Math.max(0, newCurrentLetterIndex - 2); // Go back 2 letters (minimum A)
-            
-            // Check if game over (max strikes reached)
-            if (newPenalties >= MAX_STRIKES) {
-              newState.gameOver = true;
-              // Keep currentScreen as 'game' to show overlay
+            // Wrong letter caught - check if shield is active
+            if (newState.shieldActive) {
+              // Shield protects - no penalty, just consume the letter
+              // Shield stays active
+            } else {
+              // No shield - penalty and go back 2 letters
+              newPenalties += 1;
+              newCurrentLetterIndex = Math.max(0, newCurrentLetterIndex - 2); // Go back 2 letters (minimum A)
+              
+              // Check if game over (max strikes reached)
+              if (newPenalties >= MAX_STRIKES) {
+                newState.gameOver = true;
+                // Keep currentScreen as 'game' to show overlay
+              }
             }
           }
         }
@@ -792,13 +1016,63 @@ const ABCJetGame: React.FC = () => {
         return !hitShip;
       });
 
+      // Update power-ups
+      newState.powerUps = newState.powerUps.map(powerUp => ({
+        ...powerUp,
+        y: powerUp.y + settings.powerUpSpeed
+      })).filter(powerUp => powerUp.y < newState.gameHeight + 60);
+
+      // Spawn new power-ups
+      if (currentTime - lastPowerUpSpawnRef.current > settings.powerUpSpawnRate) {
+        const rand = Math.random();
+        const type = rand < 0.33 ? 'doubleShot' : rand < 0.66 ? 'extraLife' : 'shield';
+        newState.powerUps = [...newState.powerUps, {
+          x: Math.random() * (newState.gameWidth - 60),
+          y: -60,
+          type,
+          id: powerUpIdRef.current++
+        }];
+        lastPowerUpSpawnRef.current = currentTime;
+      }
+
+      // Check power-up collisions
+      const hitPowerUps = new Set();
+      const powerUpHitbox = isMobile() ? 40 : 50;
+      newState.powerUps.forEach(powerUp => {
+        const hitShip = powerUp.x < newState.ship.x + newState.ship.width &&
+                        powerUp.x + powerUpHitbox > newState.ship.x &&
+                        powerUp.y + powerUpHitbox > newState.ship.y &&
+                        powerUp.y < newState.ship.y + newState.ship.height;
+        
+                 if (hitShip) {
+           hitPowerUps.add(powerUp.id);
+           if (powerUp.type === 'doubleShot') {
+             newState.doubleShotActive = true;
+             newState.doubleShotTimeLeft = settings.doubleShotDuration;
+           } else if (powerUp.type === 'extraLife') {
+             newPenalties = Math.max(0, newPenalties - 1);
+           } else if (powerUp.type === 'shield') {
+             newState.shieldActive = true;
+             newState.shieldTimeLeft = settings.shieldDuration;
+           }
+         }
+      });
+
+      // Remove hit power-ups
+      const remainingPowerUps = newState.powerUps.filter(powerUp => !hitPowerUps.has(powerUp.id));
+
       return {
         ...newState,
         bullets: remainingBullets,
         letters: lettersAfterShipCollision,
+        powerUps: remainingPowerUps,
         score: newScore,
         currentLetterIndex: newCurrentLetterIndex,
-        penalties: newPenalties
+        penalties: newPenalties,
+        doubleShotTimeLeft: Math.max(0, newState.doubleShotTimeLeft - deltaTime),
+        doubleShotActive: newState.doubleShotTimeLeft > 0,
+        shieldTimeLeft: Math.max(0, newState.shieldTimeLeft - deltaTime),
+        shieldActive: newState.shieldTimeLeft > 0
       };
     });
 
@@ -841,8 +1115,33 @@ const ABCJetGame: React.FC = () => {
       ctx.shadowBlur = 0;
     });
 
+        // Draw power-ups
+    gameState.powerUps.forEach(powerUp => {
+      const powerUpSize = isMobile() ? 40 : 50;
+      
+      if (powerUp.type === 'doubleShot' && puX2ImageRef.current) {
+        // Add glow effect
+        ctx.shadowColor = '#ff6600';
+        ctx.shadowBlur = isMobile() ? 15 : 20;
+        ctx.drawImage(puX2ImageRef.current, powerUp.x, powerUp.y, powerUpSize, powerUpSize);
+        ctx.shadowBlur = 0;
+      } else if (powerUp.type === 'extraLife' && puLiveImageRef.current) {
+        // Add glow effect
+        ctx.shadowColor = '#ff0044';
+        ctx.shadowBlur = isMobile() ? 15 : 20;
+        ctx.drawImage(puLiveImageRef.current, powerUp.x, powerUp.y, powerUpSize, powerUpSize);
+        ctx.shadowBlur = 0;
+      } else if (powerUp.type === 'shield' && puShieldImageRef.current) {
+        // Add glow effect
+        ctx.shadowColor = '#0088ff';
+        ctx.shadowBlur = isMobile() ? 15 : 20;
+        ctx.drawImage(puShieldImageRef.current, powerUp.x, powerUp.y, powerUpSize, powerUpSize);
+        ctx.shadowBlur = 0;
+      }
+    });
+
     animationRef.current = requestAnimationFrame(gameLoop);
-  }, [gameState, currentDirection]);
+  }, [gameState, currentDirection, keyboardDirection]);
 
   // Start game loop
   useEffect(() => {
@@ -863,14 +1162,35 @@ const ABCJetGame: React.FC = () => {
 
   const shoot = useCallback(() => {
     if (gameState.gameOver) return;
-    setGameState(prev => ({
-      ...prev,
-      bullets: [...prev.bullets, {
-        x: prev.ship.x + prev.ship.width / 2,
-        y: prev.ship.y,
-        id: bulletIdRef.current++
-      }]
-    }));
+    setGameState(prev => {
+      const newBullets = [...prev.bullets];
+      
+      if (prev.doubleShotActive) {
+        // Double shot - shoot two bullets
+        newBullets.push({
+          x: prev.ship.x + prev.ship.width / 2 - 10,
+          y: prev.ship.y,
+          id: bulletIdRef.current++
+        });
+        newBullets.push({
+          x: prev.ship.x + prev.ship.width / 2 + 10,
+          y: prev.ship.y,
+          id: bulletIdRef.current++
+        });
+      } else {
+        // Normal shot - shoot one bullet
+        newBullets.push({
+          x: prev.ship.x + prev.ship.width / 2,
+          y: prev.ship.y,
+          id: bulletIdRef.current++
+        });
+      }
+      
+      return {
+        ...prev,
+        bullets: newBullets
+      };
+    });
   }, [gameState.gameOver]);
 
   // Start continuous shooting
@@ -926,18 +1246,45 @@ const ABCJetGame: React.FC = () => {
       stopShooting();
     };
     
+    // Add keyboard support for desktop users
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (!isShooting) {
+          startShooting();
+        }
+      }
+    };
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        stopShooting();
+      }
+    };
+    
     if (isShooting) {
       document.addEventListener('mouseup', handleMouseUp);
       document.addEventListener('touchend', handleTouchEnd);
       document.addEventListener('touchcancel', handleTouchEnd);
     }
     
+    // Add keyboard listeners for desktop
+    if (!isMobile()) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('keyup', handleKeyUp);
+    }
+    
     return () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('touchcancel', handleTouchEnd);
+      if (!isMobile()) {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('keyup', handleKeyUp);
+      }
     };
-  }, [isShooting, stopShooting]);
+  }, [isShooting, stopShooting, startShooting]);
 
   // Stop shooting when game is over
   useEffect(() => {
@@ -1001,8 +1348,13 @@ const ABCJetGame: React.FC = () => {
         penalties: 0,
         bullets: [],
         letters: [],
+        powerUps: [],
         selectedBackgroundIndex: Math.floor(Math.random() * BACKGROUND_IMAGES.length), // Select new random background
-        isStartAnimation: false
+        isStartAnimation: false,
+        doubleShotActive: false,
+        doubleShotTimeLeft: 0,
+        shieldActive: false,
+        shieldTimeLeft: 0
       }));
     }, 1100); // Match the animation duration plus small buffer
   };
@@ -1290,6 +1642,10 @@ const ABCJetGame: React.FC = () => {
               <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>🔫 <strong>SHOOT</strong> other letters</p>
               <p className={`text-cyan-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>Shoot letters that are NOT in order = 1 point</p>
             </div>
+            <div className={`bg-black/50 rounded-lg border border-cyan-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
+              <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>🎁 <strong>POWER-UPS</strong> give special abilities</p>
+              <p className={`text-cyan-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>🎯 X2 = Double shooting | ❤️ = Extra life | 🛡️ = Shield protection</p>
+            </div>
             <div className={`bg-black/50 rounded-lg border border-red-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
               <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>❌ <strong>WRONG CATCH</strong> = Lose Life!</p>
               <p className={`text-red-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>Catch wrong letter = Lose life + go back 2 letters</p>
@@ -1299,6 +1655,22 @@ const ABCJetGame: React.FC = () => {
             <div className={`bg-black/50 rounded-lg border border-red-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
               <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>💀 <strong>NO LIVES LEFT</strong> = Game Over</p>
               <p className={`text-red-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>Be careful! You have {MAX_STRIKES} lives total</p>
+            </div>
+            <div className={`bg-black/50 rounded-lg border border-purple-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
+              <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>🎮 <strong>CONTROLS</strong></p>
+              {isMobile() ? (
+                <div className={`text-purple-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>
+                  <p>🕹️ <strong>Joystick</strong> = Move spaceship</p>
+                  <p>🔴 <strong>Shoot Button</strong> = Fire bullets</p>
+                  <p className="text-purple-200 mt-1">Hold shoot button for continuous firing!</p>
+                </div>
+              ) : (
+                <div className={`text-purple-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>
+                  <p>🕹️ <strong>Joystick</strong> or <strong>WASD/Arrow Keys</strong> = Move</p>
+                  <p>🔴 <strong>Shoot Button</strong> or <strong>Spacebar</strong> = Fire</p>
+                  <p className="text-purple-200 mt-1">Hold controls for continuous action!</p>
+                </div>
+              )}
             </div>
           </div>
           <div className={`flex mt-6 ${isMobile() ? 'flex-col space-y-3' : 'space-x-4'}`}>
@@ -1498,6 +1870,28 @@ const ABCJetGame: React.FC = () => {
                   ))}
                 </div>
               </div>
+              {/* Double Shot Indicator */}
+              {gameState.doubleShotActive && (
+                <div className="flex justify-between items-center">
+                  <span className={`text-orange-300 font-medium uppercase tracking-wide ${isMobile() ? 'text-xs' : 'text-sm'}`}>Double Shot</span>
+                  <div className="flex items-center">
+                    <span className={`text-orange-400 font-bold ${isMobile() ? 'text-sm' : 'text-base'}`} style={{
+                      textShadow: '0 0 10px rgba(255, 136, 0, 0.8)'
+                    }}>X2 {Math.ceil(gameState.doubleShotTimeLeft / 1000)}s</span>
+                  </div>
+                </div>
+              )}
+              {/* Shield Indicator */}
+              {gameState.shieldActive && (
+                <div className="flex justify-between items-center">
+                  <span className={`text-blue-300 font-medium uppercase tracking-wide ${isMobile() ? 'text-xs' : 'text-sm'}`}>Shield</span>
+                  <div className="flex items-center">
+                                         <span className={`text-blue-400 font-bold ${isMobile() ? 'text-sm' : 'text-base'}`} style={{
+                       textShadow: '0 0 10px rgba(0, 136, 255, 0.8)'
+                     }}>🛡️ {Math.ceil(gameState.shieldTimeLeft / 1000)}s</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
