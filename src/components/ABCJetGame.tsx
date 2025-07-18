@@ -342,6 +342,21 @@ const shootButtonStyles = `
   button:active {
     transform: scale(0.95) !important;
   }
+
+  /* Ensure joystick is always visible on all screens */
+  .joystick-container {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: flex-end !important;
+    padding: 20px !important;
+    height: 160px !important;
+  }
 `;
 
 // Inject styles into the document head
@@ -1655,6 +1670,11 @@ const ABCJetGame: React.FC = () => {
             </button>
           </div>
         </div>
+        
+        {/* Joystick for Start Screen */}
+        <div className="joystick-container">
+          <Joystick onMove={handleJoystickMove} size={isMobile() ? 120 : 140} />
+        </div>
       </div>
     );
   }
@@ -1726,6 +1746,11 @@ const ABCJetGame: React.FC = () => {
               START
             </button>
           </div>
+        </div>
+        
+        {/* Joystick for Instructions Screen */}
+        <div className="joystick-container">
+          <Joystick onMove={handleJoystickMove} size={isMobile() ? 120 : 140} />
         </div>
       </div>
     );
@@ -1821,6 +1846,11 @@ const ABCJetGame: React.FC = () => {
               RESTART
             </button>
           </div>
+        </div>
+        
+        {/* Joystick for Game Over Screen */}
+        <div className="joystick-container">
+          <Joystick onMove={handleJoystickMove} size={isMobile() ? 120 : 140} />
         </div>
       </div>
     );
