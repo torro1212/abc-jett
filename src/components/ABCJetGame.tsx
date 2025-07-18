@@ -368,6 +368,11 @@ const isMobile = () => {
          window.innerWidth <= 768;
 };
 
+// Always show joystick in development/production
+const shouldShowJoystick = () => {
+  return true; // Always show joystick for better UX
+};
+
 // Game configuration
 const MAX_STRIKES = 3; // Change this to 5 for 5 strikes mode
 
@@ -446,9 +451,9 @@ const Joystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
   const [knobPosition, setKnobPosition] = useState({ x: 0, y: 0 });
   const joystickRef = useRef<HTMLDivElement>(null);
   
-  // Mobile-optimized joystick size
-  const mobileSize = isMobile() ? Math.min(size, 100) : size;
-  const sensitivity = isMobile() ? 3 : 5;
+  // Optimized joystick size for all devices
+  const mobileSize = shouldShowJoystick() ? (isMobile() ? Math.min(size, 100) : size) : size;
+  const sensitivity = shouldShowJoystick() ? (isMobile() ? 3 : 5) : 5;
 
   const handleStart = useCallback((clientX: number, clientY: number) => {
     setIsDragging(true);
@@ -571,9 +576,11 @@ const Joystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
         height: mobileSize,
         borderRadius: '50%',
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-        border: isMobile() ? '2px solid #0ff' : '3px solid #0ff',
-        boxShadow: isMobile() 
-          ? '0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 15px rgba(0, 255, 255, 0.1)'
+        border: shouldShowJoystick() ? (isMobile() ? '2px solid #0ff' : '3px solid #0ff') : '3px solid #0ff',
+        boxShadow: shouldShowJoystick() 
+          ? (isMobile() 
+              ? '0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 15px rgba(0, 255, 255, 0.1)'
+              : '0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 20px rgba(0, 255, 255, 0.1)')
           : '0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 20px rgba(0, 255, 255, 0.1)',
         touchAction: 'none',
         userSelect: 'none',
@@ -587,21 +594,23 @@ const Joystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
       <div
         className="absolute bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full"
         style={{
-          width: isMobile() ? 30 : 40,
-          height: isMobile() ? 30 : 40,
+          width: shouldShowJoystick() ? (isMobile() ? 30 : 40) : 40,
+          height: shouldShowJoystick() ? (isMobile() ? 30 : 40) : 40,
           left: '50%',
           top: '50%',
           transform: `translate(-50%, -50%) translate(${knobPosition.x}px, ${knobPosition.y}px)`,
-          boxShadow: isMobile() 
-            ? '0 0 10px rgba(0, 255, 255, 0.8)'
+          boxShadow: shouldShowJoystick() 
+            ? (isMobile() 
+                ? '0 0 10px rgba(0, 255, 255, 0.8)'
+                : '0 0 15px rgba(0, 255, 255, 0.8)')
             : '0 0 15px rgba(0, 255, 255, 0.8)',
-          border: isMobile() ? '1px solid #fff' : '2px solid #fff',
+          border: shouldShowJoystick() ? (isMobile() ? '1px solid #fff' : '2px solid #fff') : '2px solid #fff',
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
         }}
       />
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className={`text-cyan-300 font-bold ${isMobile() ? 'text-xs' : 'text-xs'}`}>
-          {isMobile() ? 'MOVE' : 'MOVE'}
+        <div className={`text-cyan-300 font-bold ${shouldShowJoystick() ? (isMobile() ? 'text-xs' : 'text-xs') : 'text-xs'}`}>
+          {shouldShowJoystick() ? (isMobile() ? 'MOVE' : 'MOVE') : 'MOVE'}
         </div>
       </div>
     </div>
@@ -733,9 +742,9 @@ const ABCJetGame: React.FC = () => {
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
-  // Keyboard movement support for desktop
+  // Keyboard movement support for desktop (always enabled for better UX)
   useEffect(() => {
-    if (isMobile()) return; // Only enable keyboard on desktop
+    // Enable keyboard movement on all devices for better accessibility
     
     const keysPressed = new Set<string>();
     
@@ -901,10 +910,10 @@ const ABCJetGame: React.FC = () => {
       let newShipY = newState.ship.y;
       
       // Combine joystick and keyboard direction (keyboard overrides joystick on desktop)
-      const activeDirection = isMobile() ? currentDirection : {
+      const activeDirection = shouldShowJoystick() ? {
         x: keyboardDirection.x !== 'center' ? keyboardDirection.x : currentDirection.x,
         y: keyboardDirection.y !== 'center' ? keyboardDirection.y : currentDirection.y,
-      };
+      } : currentDirection;
       
       // Ultra-smooth movement - mobile-optimized
       const moveSpeed = Math.min(deltaTime * (isMobile() ? 0.3 : 0.4), isMobile() ? 10 : 12); // Mobile-optimized speed
@@ -1291,20 +1300,16 @@ const ABCJetGame: React.FC = () => {
       document.addEventListener('touchcancel', handleTouchEnd);
     }
     
-    // Add keyboard listeners for desktop
-    if (!isMobile()) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.addEventListener('keyup', handleKeyUp);
-    }
+    // Add keyboard listeners for all devices
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
     
     return () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('touchcancel', handleTouchEnd);
-      if (!isMobile()) {
-        document.removeEventListener('keydown', handleKeyDown);
-        document.removeEventListener('keyup', handleKeyUp);
-      }
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
     };
   }, [isShooting, stopShooting, startShooting]);
 
@@ -1929,7 +1934,7 @@ const ABCJetGame: React.FC = () => {
         justifyContent: 'space-between',
         alignItems: 'flex-end'
       }}>
-        <Joystick onMove={handleJoystickMove} size={isMobile() ? 100 : 120} />
+        <Joystick onMove={handleJoystickMove} size={shouldShowJoystick() ? (isMobile() ? 100 : 120) : 120} />
         
         <button
           className="relative rounded-full mobile-shoot-btn"
