@@ -1631,7 +1631,7 @@ const ABCJetGame: React.FC = () => {
               onClick={startGame}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className={`mobile-btn control-btn ${isMobile() ? 'w-full h-12 text-sm' : 'w-40 h-16 text-xl'}`}
+              className={`mobile-action-button control-btn ${isMobile() ? 'w-full h-16 text-lg font-bold' : 'w-40 h-16 text-xl'}`}
               style={{
                 color: gameState.isStartAnimation ? '#666' : '#ff0000',
                 textShadow: gameState.isStartAnimation ? '0 0 5px #666' : '0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000',
@@ -1639,24 +1639,32 @@ const ABCJetGame: React.FC = () => {
                 touchAction: 'manipulation',
                 opacity: gameState.isStartAnimation ? 0.5 : 1,
                 cursor: gameState.isStartAnimation ? 'not-allowed' : 'pointer',
-                pointerEvents: 'auto'
+                pointerEvents: 'auto',
+                boxShadow: isMobile() ? '0 12px 40px rgba(255, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2)' : undefined,
+                minHeight: isMobile() ? '64px' : undefined,
+                zIndex: 50
               }}
               disabled={gameState.isStartAnimation}
             >
-              {gameState.isStartAnimation ? 'LAUNCHING...' : 'START GAME'}
+              <span className={`${isMobile() ? 'text-lg' : 'text-xl'} font-bold`}>
+                {gameState.isStartAnimation ? 'LAUNCHING...' : 'START GAME'}
+              </span>
             </button>
             <button
               onClick={showInstructions}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className={`mobile-btn control-btn neon-text ${isMobile() ? 'w-full h-12 text-sm' : 'w-40 h-16 text-xl'}`}
+              className={`mobile-action-button control-btn neon-text ${isMobile() ? 'w-full h-16 text-lg font-bold' : 'w-40 h-16 text-xl'}`}
               style={{
                 touchAction: 'manipulation',
-                pointerEvents: 'auto'
+                pointerEvents: 'auto',
+                boxShadow: isMobile() ? '0 12px 40px rgba(147, 51, 234, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2)' : undefined,
+                minHeight: isMobile() ? '64px' : undefined,
+                zIndex: 50
               }}
               disabled={gameState.isStartAnimation}
             >
-              HOW TO PLAY
+              <span className={`${isMobile() ? 'text-lg' : 'text-xl'} font-bold`}>HOW TO PLAY</span>
             </button>
           </div>
         </div>
@@ -1861,35 +1869,48 @@ const ABCJetGame: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className={`mt-8 ${isMobile() ? 'space-y-4' : 'flex space-x-6 justify-center'}`}>
+          {/* Action Buttons - Enhanced Mobile Visibility */}
+          {isMobile() && (
+            <div className="text-center mb-4">
+              <p className="text-cyan-300 text-sm font-medium">
+                👇 השתמש בכפתורים למטה כדי לנווט 👇
+              </p>
+            </div>
+          )}
+          <div className={`mt-8 mobile-button-container ${isMobile() ? 'space-y-4' : 'flex space-x-6 justify-center'}`}>
             <button
               onClick={backToStart}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className={`w-full ${isMobile() ? 'h-16' : 'h-14 w-40'} bg-black/80 backdrop-blur-md border-2 border-cyan-500/80 rounded-2xl text-cyan-300 font-bold text-lg flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95`}
+              className={`w-full mobile-action-button ${isMobile() ? 'h-20' : 'h-14 w-40'} bg-black/90 backdrop-blur-md border-3 border-cyan-500 rounded-2xl text-cyan-300 font-bold text-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 relative z-50`}
               style={{
-                boxShadow: '0 8px 32px rgba(0, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                minHeight: '64px',
-                touchAction: 'manipulation'
+                boxShadow: '0 12px 40px rgba(0, 255, 255, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2)',
+                minHeight: isMobile() ? '80px' : '56px',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                position: 'relative',
+                zIndex: 50
               }}
             >
-              <ArrowLeft className={`${isMobile() ? 'w-6 h-6' : 'w-5 h-5'} mr-3`} />
-              BACK
+              <ArrowLeft className={`${isMobile() ? 'w-7 h-7' : 'w-5 h-5'} mr-3`} />
+              <span className={`${isMobile() ? 'text-xl' : 'text-lg'} font-bold`}>BACK</span>
             </button>
             
             <button
               onClick={startGame}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className={`w-full ${isMobile() ? 'h-16' : 'h-14 w-40'} bg-black/80 backdrop-blur-md border-2 border-green-500/80 rounded-2xl text-green-300 font-bold text-lg transition-all duration-200 hover:scale-105 active:scale-95`}
+              className={`w-full mobile-action-button ${isMobile() ? 'h-20' : 'h-14 w-40'} bg-black/90 backdrop-blur-md border-3 border-green-500 rounded-2xl text-green-300 font-bold text-xl transition-all duration-200 hover:scale-105 active:scale-95 relative z-50`}
               style={{
-                boxShadow: '0 8px 32px rgba(0, 255, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                minHeight: '64px',
-                touchAction: 'manipulation'
+                boxShadow: '0 12px 40px rgba(0, 255, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2)',
+                minHeight: isMobile() ? '80px' : '56px',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                position: 'relative',
+                zIndex: 50
               }}
             >
-              START GAME
+              <span className={`${isMobile() ? 'text-xl' : 'text-lg'} font-bold`}>START GAME</span>
             </button>
           </div>
         </div>
@@ -1981,33 +2002,50 @@ const ABCJetGame: React.FC = () => {
           </div>
 
           {/* Buttons */}
-          <div className={`flex ${isMobile() ? 'flex-col space-y-4' : 'space-x-6'}`}>
+          {isMobile() && (
+            <div className="text-center mb-4">
+              <p className="text-red-300 text-sm font-medium">
+                👇 השתמש בכפתורים למטה כדי לנווט 👇
+              </p>
+            </div>
+          )}
+          <div className={`flex mobile-button-container ${isMobile() ? 'flex-col space-y-4' : 'space-x-6'}`}>
             <button
               onClick={backToInstructions}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className={`control-btn neon-text flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
+              className={`mobile-action-button control-btn neon-text flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
                 isMobile() 
-                  ? 'w-full h-14 text-lg font-bold rounded-xl border-2 border-cyan-500/80 bg-black/60 backdrop-blur-sm' 
+                  ? 'w-full h-20 text-xl font-bold rounded-2xl border-3 border-cyan-500 bg-black/90 backdrop-blur-md' 
                   : 'w-36 h-16 text-xl rounded-lg'
               }`}
-              style={{ pointerEvents: 'auto' }}
+              style={{ 
+                pointerEvents: 'auto',
+                boxShadow: isMobile() ? '0 12px 40px rgba(0, 255, 255, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2)' : undefined,
+                minHeight: isMobile() ? '80px' : undefined,
+                zIndex: 50
+              }}
             >
-              <ArrowLeft className={`${isMobile() ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-              BACK
+              <ArrowLeft className={`${isMobile() ? 'w-7 h-7' : 'w-6 h-6'} mr-2`} />
+              <span className={`${isMobile() ? 'text-xl' : 'text-xl'} font-bold`}>BACK</span>
             </button>
             <button
               onClick={startGame}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className={`control-btn neon-text transition-all duration-200 hover:scale-105 active:scale-95 ${
+              className={`mobile-action-button control-btn neon-text transition-all duration-200 hover:scale-105 active:scale-95 ${
                 isMobile() 
-                  ? 'w-full h-14 text-lg font-bold rounded-xl border-2 border-green-500/80 bg-black/60 backdrop-blur-sm' 
+                  ? 'w-full h-20 text-xl font-bold rounded-2xl border-3 border-green-500 bg-black/90 backdrop-blur-md' 
                   : 'w-36 h-16 text-xl rounded-lg'
               }`}
-              style={{ pointerEvents: 'auto' }}
+              style={{ 
+                pointerEvents: 'auto',
+                boxShadow: isMobile() ? '0 12px 40px rgba(0, 255, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2)' : undefined,
+                minHeight: isMobile() ? '80px' : undefined,
+                zIndex: 50
+              }}
             >
-              RESTART
+              <span className={`${isMobile() ? 'text-xl' : 'text-xl'} font-bold`}>RESTART</span>
             </button>
           </div>
         </div>

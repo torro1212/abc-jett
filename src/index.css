@@ -515,6 +515,47 @@ All colors MUST be HSL.
       scroll-behavior: smooth;
     }
   }
+
+  /* Enhanced mobile button visibility */
+  .mobile-action-button {
+    @media (max-width: 768px) {
+      min-height: 80px !important;
+      font-size: 1.25rem !important;
+      font-weight: 700 !important;
+      border-width: 3px !important;
+      border-radius: 1rem !important;
+      backdrop-filter: blur(12px) !important;
+      box-shadow: 0 12px 40px rgba(0, 255, 255, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2) !important;
+      position: relative !important;
+      z-index: 50 !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    @media (max-width: 480px) {
+      min-height: 70px !important;
+      font-size: 1.125rem !important;
+    }
+  }
+
+  /* Ensure buttons are always visible */
+  .mobile-button-container {
+    @media (max-width: 768px) {
+      position: relative !important;
+      z-index: 100 !important;
+      margin-top: 2rem !important;
+      padding-bottom: 2rem !important;
+    }
+  }
+
+  /* Force button visibility */
+  button[onClick] {
+    @media (max-width: 768px) {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+  }
 }
 
 @layer utilities {
