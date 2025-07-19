@@ -54,6 +54,9 @@ const shootButtonStyles = `
     pointer-events: auto !important;
     visibility: visible !important;
     touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
   }
   
   .mobile-joystick {
@@ -67,6 +70,9 @@ const shootButtonStyles = `
     margin-bottom: 50px !important;
     touch-action: none !important;
     -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
   }
   
   .mobile-shoot-btn {
@@ -77,6 +83,9 @@ const shootButtonStyles = `
     visibility: visible !important;
     touch-action: manipulation !important;
     -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
   }
   
   @keyframes shoot-button-pulse {
@@ -155,6 +164,7 @@ const shootButtonStyles = `
       user-select: none;
       -webkit-user-select: none;
       pointer-events: auto !important;
+      -webkit-touch-callout: none;
     }
     
     .mobile-ui-panel {
@@ -166,6 +176,9 @@ const shootButtonStyles = `
       min-height: 44px;
       pointer-events: auto !important;
       touch-action: manipulation !important;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
     
     .control-btn:active {
@@ -203,6 +216,9 @@ const shootButtonStyles = `
       /* Prevent address bar from hiding content */
       min-height: 100vh;
       min-height: -webkit-fill-available;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
     
     .game-container {
@@ -212,6 +228,9 @@ const shootButtonStyles = `
       min-height: 100vh;
       min-height: -webkit-fill-available;
       padding-bottom: env(safe-area-inset-bottom, 50px);
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
   }
 
@@ -506,7 +525,7 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
   const joystickRef = useRef<HTMLDivElement>(null);
   const [isActive, setIsActive] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [touchId, setTouchId] = useState<number | null>(null); // מזהה מגע פעיל
+  const [pointerId, setPointerId] = useState<number | null>(null); // מזהה pointer פעיל
   
   const joystickSize = isMobile() ? Math.min(size, 96) : size;
   const deadZone = joystickSize * 0.2; // 20% dead zone
@@ -574,76 +593,43 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
 
   const handleEnd = useCallback(() => {
     setIsActive(false);
-    setTouchId(null);
+    setPointerId(null);
     setPosition({ x: 0, y: 0 });
     onMove({ x: 'center', y: 'center' });
   }, [onMove]);
 
   useEffect(() => {
-    const handleMouseDown = (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+    const handlePointerDown = (e: PointerEvent) => {
+      if (pointerId !== null) return;
+      setPointerId(e.pointerId);
+      setIsActive(true);
       handleStart(e.clientX, e.clientY);
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
-      e.preventDefault();
+    const handlePointerMove = (e: PointerEvent) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
       handleMove(e.clientX, e.clientY);
     };
 
-    const handleMouseUp = (e: MouseEvent) => {
-      e.preventDefault();
-      handleEnd();
-    };
-
-    const handleTouchStart = (e: TouchEvent) => {
-      // רק אם אין אצבע פעילה
-      if (touchId !== null) return;
-      const touch = Array.from(e.changedTouches).find(t => t.target === joystickRef.current);
-      if (!touch) return;
-      setTouchId(touch.identifier);
-      setIsActive(true);
-      handleStart(touch.clientX, touch.clientY);
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (touchId === null) return;
-      const touch = Array.from(e.touches).find(t => t.identifier === touchId);
-      if (!touch) return;
-      handleMove(touch.clientX, touch.clientY);
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (touchId === null) return;
-      const touch = Array.from(e.changedTouches).find(t => t.identifier === touchId);
-      if (!touch) return;
+    const handlePointerUp = (e: PointerEvent) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
       handleEnd();
     };
 
     const joystick = joystickRef.current;
     if (!joystick) return;
 
-    // Mouse events
-    joystick.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    // Touch events
-    joystick.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { passive: false });
-    document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    // Pointer events (work better for multi-touch)
+    joystick.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
 
     return () => {
-      joystick.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      joystick.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-      document.removeEventListener('touchcancel', handleTouchEnd);
+      joystick.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [handleStart, handleMove, handleEnd, touchId]);
+  }, [handleStart, handleMove, handleEnd, pointerId]);
 
   return (
     <div
@@ -1612,7 +1598,7 @@ const ABCJetGame: React.FC = () => {
     }));
   };
 
-  const [shootTouchId, setShootTouchId] = useState<number | null>(null);
+  const [shootPointerId, setShootPointerId] = useState<number | null>(null);
 
   // Start Screen
   if (gameState.currentScreen === 'start') {
@@ -1990,18 +1976,14 @@ const ABCJetGame: React.FC = () => {
           }}>
             <button
               className="relative rounded-full mobile-shoot-btn"
-              onTouchStart={e => {
-                if (shootTouchId !== null) return;
-                const touch = Array.from(e.changedTouches).find(t => t.target === e.currentTarget);
-                if (!touch) return;
-                setShootTouchId(touch.identifier);
+              onPointerDown={e => {
+                if (shootPointerId !== null) return;
+                setShootPointerId(e.pointerId);
                 startShooting();
               }}
-              onTouchEnd={e => {
-                if (shootTouchId === null) return;
-                const touch = Array.from(e.changedTouches).find(t => t.identifier === shootTouchId);
-                if (!touch) return;
-                setShootTouchId(null);
+              onPointerUp={e => {
+                if (shootPointerId === null || e.pointerId !== shootPointerId) return;
+                setShootPointerId(null);
                 stopShooting();
               }}
               onMouseDown={e => {
@@ -2067,12 +2049,7 @@ const ABCJetGame: React.FC = () => {
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.parentElement.style.transform = 'scale(1.15)';
                 }}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                }}
-                onTouchEnd={(e) => {
-                  e.stopPropagation();
-                }}
+
               />
             
             {/* Outer pulsing ring */}
