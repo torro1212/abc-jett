@@ -427,6 +427,94 @@ All colors MUST be HSL.
       border-radius: 0.5rem;
     }
   }
+
+  /* Enhanced mobile instructions optimizations */
+  .mobile-instructions-container {
+    @media (max-width: 768px) {
+      height: 100vh;
+      height: -webkit-fill-available;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 1rem;
+      padding-bottom: 2rem;
+    }
+  }
+
+  .mobile-instructions-card {
+    @media (max-width: 768px) {
+      margin-bottom: 0.75rem;
+      border-radius: 1rem;
+      backdrop-filter: blur(12px);
+      border-width: 2px;
+      box-shadow: 0 8px 32px rgba(0, 255, 255, 0.15);
+    }
+    @media (max-width: 480px) {
+      margin-bottom: 0.5rem;
+      padding: 1rem;
+    }
+  }
+
+  .mobile-instructions-title {
+    @media (max-width: 768px) {
+      font-size: 1.875rem;
+      line-height: 2.25rem;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    }
+    @media (max-width: 480px) {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+  }
+
+  .mobile-instructions-text {
+    @media (max-width: 768px) {
+      font-size: 0.875rem;
+      line-height: 1.5rem;
+      letter-spacing: 0.025em;
+    }
+    @media (max-width: 480px) {
+      font-size: 0.8125rem;
+      line-height: 1.375rem;
+    }
+  }
+
+  .mobile-instructions-button {
+    @media (max-width: 768px) {
+      min-height: 4rem;
+      font-size: 1.125rem;
+      font-weight: 700;
+      border-radius: 1rem;
+      border-width: 2px;
+      backdrop-filter: blur(12px);
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
+    }
+    @media (max-width: 480px) {
+      min-height: 3.5rem;
+      font-size: 1rem;
+      border-radius: 0.75rem;
+    }
+  }
+
+  /* Mobile touch optimizations */
+  .mobile-touch-target {
+    @media (max-width: 768px) {
+      min-height: 44px;
+      min-width: 44px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+
+  /* Mobile scroll optimizations */
+  .mobile-scroll-container {
+    @media (max-width: 768px) {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scroll-behavior: smooth;
+    }
+  }
 }
 
 @layer utilities {
