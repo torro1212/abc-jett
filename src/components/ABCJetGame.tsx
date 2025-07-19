@@ -49,6 +49,7 @@ const shootButtonStyles = `
     justify-content: space-between !important;
     align-items: flex-end !important;
     padding: 20px !important;
+    padding-bottom: 80px !important; /* Extra padding for mobile browsers */
     z-index: 50 !important;
     pointer-events: auto !important;
     visibility: visible !important;
@@ -61,6 +62,8 @@ const shootButtonStyles = `
     visibility: visible !important;
     opacity: 1 !important;
     position: relative !important;
+    /* Ensure joystick is not hidden by mobile browser UI */
+    margin-bottom: 50px !important;
   }
   
   .mobile-shoot-btn {
@@ -114,11 +117,14 @@ const shootButtonStyles = `
       left: 0;
       right: 0;
       bottom: 0;
+      /* Add safe area padding for mobile browsers */
+      padding-bottom: env(safe-area-inset-bottom, 50px);
     }
     
     .game-controls {
       height: 160px !important;
       padding: 20px !important;
+      padding-bottom: 80px !important; /* Extra padding for mobile browsers */
       display: flex !important;
       justify-content: space-between !important;
       align-items: flex-end !important;
@@ -186,11 +192,18 @@ const shootButtonStyles = `
       width: 100%;
       height: 100%;
       touch-action: none;
+      /* Prevent address bar from hiding content */
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
     }
     
     .game-container {
       touch-action: none;
       -webkit-overflow-scrolling: touch;
+      /* Ensure content is not hidden by mobile browser UI */
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding-bottom: env(safe-area-inset-bottom, 50px);
     }
   }
 
@@ -1935,7 +1948,7 @@ const ABCJetGame: React.FC = () => {
           {/* Joystick - Left side for mobile */}
           <div style={{
             position: 'absolute',
-            bottom: isMobile() ? '30px' : '20px',
+            bottom: isMobile() ? '80px' : '20px',
             left: isMobile() ? '30px' : '40%',
             transform: isMobile() ? 'none' : 'translateX(-50%)',
             zIndex: 70,
@@ -1950,7 +1963,7 @@ const ABCJetGame: React.FC = () => {
           {/* Shoot Button - Right side for mobile */}
           <div style={{
             position: 'absolute',
-            bottom: isMobile() ? '30px' : '20px',
+            bottom: isMobile() ? '80px' : '20px',
             right: isMobile() ? '30px' : '40%',
             transform: isMobile() ? 'none' : 'translateX(50%)',
             zIndex: 70,
