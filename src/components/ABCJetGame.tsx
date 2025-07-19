@@ -1667,60 +1667,108 @@ const ABCJetGame: React.FC = () => {
   // Instructions Screen
   if (gameState.currentScreen === 'instructions') {
     return (
-      <div className="game-container flex flex-col items-center justify-center">
-        <div className={`text-center space-y-4 ${isMobile() ? 'max-w-sm px-4' : 'max-w-2xl'}`}>
-          <h1 className={`neon-title mb-4 ${isMobile() ? 'text-3xl' : 'text-5xl'}`}>HOW TO PLAY</h1>
-          <div className={`neon-text space-y-3 ${isMobile() ? 'text-sm' : 'text-lg'}`}>
-            <div className={`bg-black/50 rounded-lg border border-cyan-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
-              <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>🎯 <strong>CATCH</strong> letters in ABC order</p>
-              <p className={`text-cyan-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>Touch the correct letter with your spaceship = 2 points</p>
+      <div className="game-container flex flex-col items-center justify-center min-h-screen">
+        <div className={`text-center ${isMobile() ? 'w-full max-w-sm px-6 py-4' : 'max-w-2xl px-8'}`}>
+          <h1 className={`neon-title mb-6 ${isMobile() ? 'text-4xl leading-tight' : 'text-5xl'}`}>HOW TO PLAY</h1>
+          
+          <div className={`neon-text space-y-4 ${isMobile() ? 'text-base' : 'text-lg'}`}>
+            {/* CATCH Section */}
+            <div className={`bg-black/60 rounded-xl border-2 border-cyan-500/80 backdrop-blur-sm ${isMobile() ? 'p-4 mb-4' : 'p-6'}`}>
+              <p className={`mb-3 font-bold ${isMobile() ? 'text-lg' : 'text-2xl'}`}>
+                🎯 <span className="text-cyan-400">CATCH</span> letters in ABC order
+              </p>
+              <p className={`text-cyan-200 ${isMobile() ? 'text-sm leading-relaxed' : 'text-base'}`}>
+                Touch the correct letter with your spaceship = <span className="text-yellow-400 font-bold">2 points</span>
+              </p>
             </div>
-            <div className={`bg-black/50 rounded-lg border border-cyan-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
-              <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>🔫 <strong>SHOOT</strong> other letters</p>
-              <p className={`text-cyan-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>Shoot letters that are NOT in order = 1 point</p>
+
+            {/* SHOOT Section */}
+            <div className={`bg-black/60 rounded-xl border-2 border-cyan-500/80 backdrop-blur-sm ${isMobile() ? 'p-4 mb-4' : 'p-6'}`}>
+              <p className={`mb-3 font-bold ${isMobile() ? 'text-lg' : 'text-2xl'}`}>
+                🔫 <span className="text-cyan-400">SHOOT</span> other letters
+              </p>
+              <p className={`text-cyan-200 ${isMobile() ? 'text-sm leading-relaxed' : 'text-base'}`}>
+                Shoot letters that are NOT in order = <span className="text-yellow-400 font-bold">1 point</span>
+              </p>
             </div>
-            <div className={`bg-black/50 rounded-lg border border-cyan-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
-              <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>🎁 <strong>POWER-UPS</strong> give special abilities</p>
-              <p className={`text-cyan-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>🎯 X2 = Double shooting | ❤️ = Extra life | 🛡️ = Shield protection</p>
+
+            {/* POWER-UPS Section */}
+            <div className={`bg-black/60 rounded-xl border-2 border-cyan-500/80 backdrop-blur-sm ${isMobile() ? 'p-4 mb-4' : 'p-6'}`}>
+              <p className={`mb-3 font-bold ${isMobile() ? 'text-lg' : 'text-2xl'}`}>
+                🎁 <span className="text-cyan-400">POWER-UPS</span> give special abilities
+              </p>
+              <div className={`text-cyan-200 ${isMobile() ? 'text-sm leading-relaxed' : 'text-base'}`}>
+                <p className="mb-1">🎯 <strong>X2</strong> = Double shooting</p>
+                <p className="mb-1">❤️ <strong>Extra Life</strong> = +1 life</p>
+                <p>🛡️ <strong>Shield</strong> = Protection from wrong catches</p>
+              </div>
             </div>
-            <div className={`bg-black/50 rounded-lg border border-red-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
-              <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>❌ <strong>WRONG CATCH</strong> = Lose Life!</p>
-              <p className={`text-red-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>Catch wrong letter = Lose life + go back 2 letters</p>
-              <p className={`text-red-200 mt-1 ${isMobile() ? 'text-xs' : 'text-xs'}`}>Example: At F? Wrong catch → Go back to D</p>
-              <p className={`text-red-200 ${isMobile() ? 'text-xs' : 'text-xs'}`}>At A or B? Wrong catch → Stay at A (minimum)</p>
+
+            {/* WRONG CATCH Section */}
+            <div className={`bg-black/60 rounded-xl border-2 border-red-500/80 backdrop-blur-sm ${isMobile() ? 'p-4 mb-4' : 'p-6'}`}>
+              <p className={`mb-3 font-bold ${isMobile() ? 'text-lg' : 'text-2xl'}`}>
+                ❌ <span className="text-red-400">WRONG CATCH</span> = Lose Life!
+              </p>
+              <p className={`text-red-200 ${isMobile() ? 'text-sm leading-relaxed' : 'text-base'}`}>
+                Catch wrong letter = Lose life + go back 2 letters
+              </p>
+              <div className={`text-red-300 mt-2 ${isMobile() ? 'text-xs' : 'text-sm'}`}>
+                <p className="mb-1">Example: At F? Wrong catch → Go back to D</p>
+                <p>At A or B? Wrong catch → Stay at A (minimum)</p>
+              </div>
             </div>
-            <div className={`bg-black/50 rounded-lg border border-red-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
-              <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>💀 <strong>NO LIVES LEFT</strong> = Game Over</p>
-              <p className={`text-red-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>Be careful! You have {MAX_STRIKES} lives total</p>
+
+            {/* NO LIVES Section */}
+            <div className={`bg-black/60 rounded-xl border-2 border-red-500/80 backdrop-blur-sm ${isMobile() ? 'p-4 mb-4' : 'p-6'}`}>
+              <p className={`mb-3 font-bold ${isMobile() ? 'text-lg' : 'text-2xl'}`}>
+                💀 <span className="text-red-400">NO LIVES LEFT</span> = Game Over
+              </p>
+              <p className={`text-red-200 ${isMobile() ? 'text-sm leading-relaxed' : 'text-base'}`}>
+                Be careful! You have <span className="text-yellow-400 font-bold">{MAX_STRIKES}</span> lives total
+              </p>
             </div>
-            <div className={`bg-black/50 rounded-lg border border-purple-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
-              <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>🎮 <strong>CONTROLS</strong></p>
-              <div className={`text-purple-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>
-                <p>🕹️ <strong>Joystick</strong> = Move spaceship</p>
-                <p>🔴 <strong>Shoot Button</strong> or <strong>Spacebar</strong> = Fire bullets</p>
-                <p className="text-purple-200 mt-1">Hold shoot button for continuous firing!</p>
+
+            {/* CONTROLS Section */}
+            <div className={`bg-black/60 rounded-xl border-2 border-purple-500/80 backdrop-blur-sm ${isMobile() ? 'p-4 mb-6' : 'p-6'}`}>
+              <p className={`mb-3 font-bold ${isMobile() ? 'text-lg' : 'text-2xl'}`}>
+                🎮 <span className="text-purple-400">CONTROLS</span>
+              </p>
+              <div className={`text-purple-200 ${isMobile() ? 'text-sm leading-relaxed' : 'text-base'}`}>
+                <p className="mb-2">🕹️ <strong>Joystick</strong> = Move spaceship</p>
+                <p className="mb-2">🔴 <strong>Shoot Button</strong> or <strong>Spacebar</strong> = Fire bullets</p>
+                <p className="text-purple-300 font-semibold">Hold shoot button for continuous firing!</p>
               </div>
             </div>
           </div>
-          <div className={`flex mt-6 ${isMobile() ? 'flex-col space-y-3' : 'space-x-4'}`}>
+
+          {/* Buttons */}
+          <div className={`flex ${isMobile() ? 'flex-col space-y-4 mt-6' : 'space-x-6 mt-8'}`}>
             <button
               onClick={backToStart}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className={`control-btn neon-text flex items-center justify-center ${isMobile() ? 'w-full h-12 text-base' : 'w-32 h-16 text-xl'}`}
+              className={`control-btn neon-text flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
+                isMobile() 
+                  ? 'w-full h-14 text-lg font-bold rounded-xl border-2 border-cyan-500/80 bg-black/60 backdrop-blur-sm' 
+                  : 'w-36 h-16 text-xl rounded-lg'
+              }`}
               style={{ pointerEvents: 'auto' }}
             >
-              <ArrowLeft className={`${isMobile() ? 'w-4 h-4' : 'w-6 h-6'} mr-2`} />
+              <ArrowLeft className={`${isMobile() ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
               BACK
             </button>
             <button
               onClick={startGame}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className={`control-btn neon-text ${isMobile() ? 'w-full h-12 text-base' : 'w-32 h-16 text-xl'}`}
+              className={`control-btn neon-text transition-all duration-200 hover:scale-105 active:scale-95 ${
+                isMobile() 
+                  ? 'w-full h-14 text-lg font-bold rounded-xl border-2 border-green-500/80 bg-black/60 backdrop-blur-sm' 
+                  : 'w-36 h-16 text-xl rounded-lg'
+              }`}
               style={{ pointerEvents: 'auto' }}
             >
-              START
+              START GAME
             </button>
           </div>
         </div>
@@ -1798,22 +1846,45 @@ const ABCJetGame: React.FC = () => {
   // Game Over Screen
   if (gameState.currentScreen === 'gameOver') {
     return (
-      <div className="game-container flex flex-col items-center justify-center">
-        <div className="text-center space-y-6">
-          <h1 className={`neon-title mb-4 text-red-500 ${isMobile() ? 'text-4xl' : 'text-6xl'}`}>GAME OVER</h1>
-          <p className={`neon-text ${isMobile() ? 'text-lg' : 'text-2xl'}`}>Score: {gameState.score}</p>
-          <p className={`neon-text text-red-400 ${isMobile() ? 'text-base' : 'text-xl'}`}>No Lives Left - Game Over!</p>
-          <div className="flex space-x-4">
+      <div className="game-container flex flex-col items-center justify-center min-h-screen">
+        <div className={`text-center ${isMobile() ? 'w-full max-w-sm px-6 py-4' : 'max-w-2xl px-8'}`}>
+          <h1 className={`neon-title mb-6 text-red-500 ${isMobile() ? 'text-5xl leading-tight' : 'text-6xl'}`}>GAME OVER</h1>
+          
+          <div className={`bg-black/60 rounded-xl border-2 border-red-500/80 backdrop-blur-sm ${isMobile() ? 'p-6 mb-6' : 'p-8 mb-8'}`}>
+            <p className={`neon-text mb-4 ${isMobile() ? 'text-2xl' : 'text-3xl'}`}>
+              Final Score: <span className="text-yellow-400 font-bold">{gameState.score}</span>
+            </p>
+            <p className={`neon-text text-red-300 ${isMobile() ? 'text-lg' : 'text-xl'}`}>
+              No Lives Left - Game Over!
+            </p>
+          </div>
+
+          {/* Buttons */}
+          <div className={`flex ${isMobile() ? 'flex-col space-y-4' : 'space-x-6'}`}>
             <button
               onClick={backToInstructions}
-              className="control-btn w-32 h-16 text-xl neon-text flex items-center justify-center"
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              className={`control-btn neon-text flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
+                isMobile() 
+                  ? 'w-full h-14 text-lg font-bold rounded-xl border-2 border-cyan-500/80 bg-black/60 backdrop-blur-sm' 
+                  : 'w-36 h-16 text-xl rounded-lg'
+              }`}
+              style={{ pointerEvents: 'auto' }}
             >
-              <ArrowLeft className="w-6 h-6 mr-2" />
+              <ArrowLeft className={`${isMobile() ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
               BACK
             </button>
             <button
               onClick={startGame}
-              className="control-btn w-32 h-16 text-xl neon-text"
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              className={`control-btn neon-text transition-all duration-200 hover:scale-105 active:scale-95 ${
+                isMobile() 
+                  ? 'w-full h-14 text-lg font-bold rounded-xl border-2 border-green-500/80 bg-black/60 backdrop-blur-sm' 
+                  : 'w-36 h-16 text-xl rounded-lg'
+              }`}
+              style={{ pointerEvents: 'auto' }}
             >
               RESTART
             </button>
