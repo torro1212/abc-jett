@@ -308,12 +308,12 @@ All colors MUST be HSL.
   /* Mobile joystick optimizations */
   .mobile-joystick {
     position: fixed;
-    bottom: 20px;
+    bottom: 22px;
     left: 20px;
     z-index: 100;
     touch-action: none;
     @media (max-width: 768px) {
-      bottom: 15px;
+      bottom: 16.5px;
       left: 15px;
     }
   }
@@ -321,13 +321,13 @@ All colors MUST be HSL.
   /* Mobile shoot button optimizations */
   .mobile-shoot-btn {
     position: fixed;
-    bottom: 20px;
+    bottom: 22px;
     right: 20px;
     z-index: 100;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     @media (max-width: 768px) {
-      bottom: 15px;
+      bottom: 16.5px;
       right: 15px;
     }
   }

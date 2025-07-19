@@ -1883,13 +1883,6 @@ const ABCJetGame: React.FC = () => {
           </div>
 
           {/* Action Buttons - Enhanced Mobile Visibility */}
-          {isMobile() && (
-            <div className="text-center mb-4">
-              <p className="text-cyan-300 text-sm font-medium">
-                👇 השתמש בכפתורים למטה כדי לנווט 👇
-              </p>
-            </div>
-          )}
           <div className={`mt-8 mobile-button-container ${isMobile() ? 'space-y-4' : 'flex space-x-6 justify-center'}`}>
             <button
               onClick={backToStart}
@@ -2016,13 +2009,6 @@ const ABCJetGame: React.FC = () => {
           </div>
 
           {/* Buttons */}
-          {isMobile() && (
-            <div className="text-center mb-4">
-              <p className="text-red-300 text-sm font-medium">
-                👇 השתמש בכפתורים למטה כדי לנווט 👇
-              </p>
-            </div>
-          )}
           <div className={`flex mobile-button-container ${isMobile() ? 'flex-col space-y-4' : 'space-x-6'}`}>
             <button
               onClick={backToInstructions}
@@ -2197,7 +2183,7 @@ const ABCJetGame: React.FC = () => {
           {/* Joystick - Left side for mobile */}
           <div style={{
             position: 'absolute',
-            bottom: isMobile() ? '80px' : '20px',
+            bottom: isMobile() ? '88px' : '22px',
             left: isMobile() ? '30px' : '40%',
             transform: isMobile() ? 'none' : 'translateX(-50%)',
             zIndex: 70,
@@ -2212,7 +2198,7 @@ const ABCJetGame: React.FC = () => {
           {/* Shoot Button - Right side for mobile */}
           <div style={{
             position: 'absolute',
-            bottom: isMobile() ? '80px' : '20px',
+            bottom: isMobile() ? '88px' : '22px',
             right: isMobile() ? '30px' : '40%',
             transform: isMobile() ? 'none' : 'translateX(50%)',
             zIndex: 70,
