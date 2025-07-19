@@ -506,6 +506,7 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
   const joystickRef = useRef<HTMLDivElement>(null);
   const [isActive, setIsActive] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [touchId, setTouchId] = useState<number | null>(null); // מזהה מגע פעיל
   
   const joystickSize = isMobile() ? Math.min(size, 96) : size;
   const deadZone = joystickSize * 0.2; // 20% dead zone
@@ -528,9 +529,6 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
     if (distance < deadZone) {
       return { x: 'center' as const, y: 'center' as const };
     }
-    
-    const angle = Math.atan2(deltaY, deltaX);
-    const normalizedDistance = Math.min(distance / (joystickSize / 2), 1);
     
     // Calculate direction based on angle
     let x: 'left' | 'right' | 'center' = 'center';
@@ -576,6 +574,7 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
 
   const handleEnd = useCallback(() => {
     setIsActive(false);
+    setTouchId(null);
     setPosition({ x: 0, y: 0 });
     onMove({ x: 'center', y: 'center' });
   }, [onMove]);
@@ -598,20 +597,26 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
     };
 
     const handleTouchStart = (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const touch = e.touches[0];
+      // רק אם אין אצבע פעילה
+      if (touchId !== null) return;
+      const touch = Array.from(e.changedTouches).find(t => t.target === joystickRef.current);
+      if (!touch) return;
+      setTouchId(touch.identifier);
+      setIsActive(true);
       handleStart(touch.clientX, touch.clientY);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      e.preventDefault();
-      const touch = e.touches[0];
+      if (touchId === null) return;
+      const touch = Array.from(e.touches).find(t => t.identifier === touchId);
+      if (!touch) return;
       handleMove(touch.clientX, touch.clientY);
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      e.preventDefault();
+      if (touchId === null) return;
+      const touch = Array.from(e.changedTouches).find(t => t.identifier === touchId);
+      if (!touch) return;
       handleEnd();
     };
 
@@ -627,6 +632,7 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
     joystick.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleTouchEnd, { passive: false });
+    document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
     return () => {
       joystick.removeEventListener('mousedown', handleMouseDown);
@@ -635,8 +641,9 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
       joystick.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [handleStart, handleMove, handleEnd]);
+  }, [handleStart, handleMove, handleEnd, touchId]);
 
   return (
     <div
@@ -1336,19 +1343,19 @@ const ABCJetGame: React.FC = () => {
   }, [gameState.gameOver, stopShooting]);
 
   // Prevent default touch behaviors
-  useEffect(() => {
-    const preventScroll = (e: TouchEvent) => {
-      e.preventDefault();
-    };
-    
-    document.addEventListener('touchmove', preventScroll, { passive: false });
-    document.addEventListener('touchstart', preventScroll, { passive: false });
-    
-    return () => {
-      document.removeEventListener('touchmove', preventScroll, { passive: false } as EventListenerOptions);
-      document.removeEventListener('touchstart', preventScroll, { passive: false } as EventListenerOptions);
-    };
-  }, []);
+  // useEffect(() => {
+  //   const preventScroll = (e: TouchEvent) => {
+  //     e.preventDefault();
+  //   };
+  //   
+  //   document.addEventListener('touchmove', preventScroll, { passive: false });
+  //   document.addEventListener('touchstart', preventScroll, { passive: false });
+  //   
+  //   return () => {
+  //     document.removeEventListener('touchmove', preventScroll, { passive: false } as EventListenerOptions);
+  //     document.removeEventListener('touchstart', preventScroll, { passive: false } as EventListenerOptions);
+  //   };
+  // }, []);
 
   const showInstructions = () => {
     setGameState(prev => ({
@@ -1604,6 +1611,8 @@ const ABCJetGame: React.FC = () => {
       isStartAnimation: false
     }));
   };
+
+  const [shootTouchId, setShootTouchId] = useState<number | null>(null);
 
   // Start Screen
   if (gameState.currentScreen === 'start') {
@@ -1981,13 +1990,25 @@ const ABCJetGame: React.FC = () => {
           }}>
             <button
               className="relative rounded-full mobile-shoot-btn"
-              onTouchStart={(e) => {
-                e.stopPropagation();
+              onTouchStart={e => {
+                if (shootTouchId !== null) return;
+                const touch = Array.from(e.changedTouches).find(t => t.target === e.currentTarget);
+                if (!touch) return;
+                setShootTouchId(touch.identifier);
                 startShooting();
               }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
+              onTouchEnd={e => {
+                if (shootTouchId === null) return;
+                const touch = Array.from(e.changedTouches).find(t => t.identifier === shootTouchId);
+                if (!touch) return;
+                setShootTouchId(null);
+                stopShooting();
+              }}
+              onMouseDown={e => {
                 startShooting();
+              }}
+              onMouseUp={e => {
+                stopShooting();
               }}
               style={{
                 width: isMobile() ? '70px' : '97px',
