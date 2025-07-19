@@ -53,6 +53,7 @@ const shootButtonStyles = `
     z-index: 50 !important;
     pointer-events: auto !important;
     visibility: visible !important;
+    touch-action: none !important;
   }
   
   .mobile-joystick {
@@ -64,6 +65,8 @@ const shootButtonStyles = `
     position: relative !important;
     /* Ensure joystick is not hidden by mobile browser UI */
     margin-bottom: 50px !important;
+    touch-action: none !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
   
   .mobile-shoot-btn {
@@ -72,6 +75,8 @@ const shootButtonStyles = `
     position: relative !important;
     display: block !important;
     visibility: visible !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
   
   @keyframes shoot-button-pulse {
@@ -149,6 +154,7 @@ const shootButtonStyles = `
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
+      pointer-events: auto !important;
     }
     
     .mobile-ui-panel {
@@ -158,6 +164,8 @@ const shootButtonStyles = `
     .control-btn {
       transition: all 0.1s ease;
       min-height: 44px;
+      pointer-events: auto !important;
+      touch-action: manipulation !important;
     }
     
     .control-btn:active {
@@ -575,6 +583,7 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       handleStart(e.clientX, e.clientY);
     };
 
@@ -590,6 +599,7 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
 
     const handleTouchStart = (e: TouchEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       const touch = e.touches[0];
       handleStart(touch.clientX, touch.clientY);
     };
@@ -1971,8 +1981,14 @@ const ABCJetGame: React.FC = () => {
           }}>
             <button
               className="relative rounded-full mobile-shoot-btn"
-              onTouchStart={startShooting}
-              onMouseDown={startShooting}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                startShooting();
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                startShooting();
+              }}
               style={{
                 width: isMobile() ? '70px' : '97px',
                 height: isMobile() ? '70px' : '97px',
@@ -2021,12 +2037,20 @@ const ABCJetGame: React.FC = () => {
                   transform: 'translate(-50%, -50%)'
                 }}
                 onMouseDown={(e) => {
+                  e.stopPropagation();
                   e.currentTarget.style.transform = 'scale(0.9)';
                   e.currentTarget.parentElement.style.transform = 'scale(0.95)';
                 }}
                 onMouseUp={(e) => {
+                  e.stopPropagation();
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.parentElement.style.transform = 'scale(1.15)';
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchEnd={(e) => {
+                  e.stopPropagation();
                 }}
               />
             
