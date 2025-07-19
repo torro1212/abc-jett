@@ -514,6 +514,10 @@ interface GameState {
   doubleShotTimeLeft: number; // Time left for double shot effect
   shieldActive: boolean; // Whether shield is active
   shieldTimeLeft: number; // Time left for shield effect
+  energyMeter: number; // Energy meter (0-100)
+  energyMeterActive: boolean; // Whether energy meter bonus is active
+  energyMeterTimeLeft: number; // Time left for energy meter bonus (30 seconds)
+  lettersShotCount: number; // Count of letters shot for energy meter
 }
 
 interface JoystickProps {
@@ -690,6 +694,16 @@ const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
 const ABCJetGame: React.FC = () => {
   console.log('ABCJetGame component loaded');
   
+  // Helper function to get initial ship position
+  const getInitialShipPosition = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    return {
+      x: width / 2 - (isMobile() ? 70 : 90) / 2,
+      y: height - (isMobile() ? 180 : 230)
+    };
+  };
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
@@ -742,6 +756,10 @@ const ABCJetGame: React.FC = () => {
     doubleShotTimeLeft: 0,
     shieldActive: false,
     shieldTimeLeft: 0,
+    energyMeter: 0, // Energy meter starts at 0
+    energyMeterActive: false, // Energy meter bonus not active initially
+    energyMeterTimeLeft: 0, // No time left for energy meter bonus
+    lettersShotCount: 0, // No letters shot initially
   });
 
   // Load images once
@@ -796,6 +814,7 @@ const ABCJetGame: React.FC = () => {
     const updateDimensions = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
+      const initialPosition = getInitialShipPosition();
       
       setGameState(prev => ({
         ...prev,
@@ -803,8 +822,8 @@ const ABCJetGame: React.FC = () => {
         gameHeight: height,
         ship: {
           ...prev.ship,
-          x: width / 2 - prev.ship.width / 2,
-          y: height - (isMobile() ? 180 : 230), // Mobile-optimized positioning
+          x: initialPosition.x,
+          y: initialPosition.y,
         }
       }));
     };
@@ -990,6 +1009,10 @@ const ABCJetGame: React.FC = () => {
       let newScore = newState.score;
       let newCurrentLetterIndex = newState.currentLetterIndex;
       let newPenalties = newState.penalties;
+      let newEnergyMeter = newState.energyMeter;
+      let newEnergyMeterActive = newState.energyMeterActive;
+      let newEnergyMeterTimeLeft = newState.energyMeterTimeLeft;
+      let newLettersShotCount = newState.lettersShotCount;
       
       // Bullet-letter collisions (shoot non-ABC letters for 1 point) - mobile-optimized
       const hitLettersByBullets = new Set();
@@ -1004,7 +1027,23 @@ const ABCJetGame: React.FC = () => {
           hitLettersByBullets.add(hitLetter.id);
           // Only get points for shooting letters that are NOT the current target
           if (hitLetter.char !== alphabet[newCurrentLetterIndex]) {
-            newScore += 1;
+            let pointsEarned = 1;
+            
+            // Apply double points if energy meter is active
+            if (newEnergyMeterActive) {
+              pointsEarned *= 2;
+            }
+            
+            newScore += pointsEarned;
+            // Increment energy meter for shooting wrong letters
+            newLettersShotCount += 1;
+            newEnergyMeter = Math.min(100, newLettersShotCount);
+            
+            // Check if energy meter is full (100 letters shot)
+            if (newEnergyMeter >= 100 && !newEnergyMeterActive) {
+              newEnergyMeterActive = true;
+              newEnergyMeterTimeLeft = 30000; // 30 seconds in milliseconds
+            }
           }
         }
       });
@@ -1031,7 +1070,14 @@ const ABCJetGame: React.FC = () => {
         if (hitShip) {
           if (letter.char === alphabet[newCurrentLetterIndex]) {
             // Correct letter caught - 2 points and move to next letter
-            newScore += 2;
+            let pointsEarned = 2;
+            
+            // Apply double points if energy meter is active
+            if (newEnergyMeterActive) {
+              pointsEarned *= 2;
+            }
+            
+            newScore += pointsEarned;
             newCurrentLetterIndex = (newCurrentLetterIndex + 1) % alphabet.length;
           } else {
             // Wrong letter caught - check if shield is active
@@ -1100,6 +1146,20 @@ const ABCJetGame: React.FC = () => {
       // Remove hit power-ups
       const remainingPowerUps = newState.powerUps.filter(powerUp => !hitPowerUps.has(powerUp.id));
 
+      // Update energy meter time and check if bonus should end
+      newEnergyMeterTimeLeft = Math.max(0, newEnergyMeterTimeLeft - deltaTime);
+      if (newEnergyMeterTimeLeft <= 0 && newEnergyMeterActive) {
+        newEnergyMeterActive = false;
+        newEnergyMeter = 0;
+        newLettersShotCount = 0;
+      }
+      
+      // Apply double points bonus if energy meter is active
+      if (newEnergyMeterActive) {
+        // Double the score for all points earned during this period
+        // This will be handled in the collision detection above
+      }
+      
       return {
         ...newState,
         bullets: remainingBullets,
@@ -1108,6 +1168,10 @@ const ABCJetGame: React.FC = () => {
         score: newScore,
         currentLetterIndex: newCurrentLetterIndex,
         penalties: newPenalties,
+        energyMeter: newEnergyMeter,
+        energyMeterActive: newEnergyMeterActive,
+        energyMeterTimeLeft: newEnergyMeterTimeLeft,
+        lettersShotCount: newLettersShotCount,
         doubleShotTimeLeft: Math.max(0, newState.doubleShotTimeLeft - deltaTime),
         doubleShotActive: newState.doubleShotTimeLeft > 0,
         shieldTimeLeft: Math.max(0, newState.shieldTimeLeft - deltaTime),
@@ -1389,8 +1453,14 @@ const ABCJetGame: React.FC = () => {
         doubleShotActive: false,
         doubleShotTimeLeft: 0,
         shieldActive: false,
-        shieldTimeLeft: 0
+        shieldTimeLeft: 0,
+        energyMeter: 0,
+        energyMeterActive: false,
+        energyMeterTimeLeft: 0,
+        lettersShotCount: 0
       }));
+      // Reset joystick direction to center
+      setCurrentDirection({ x: 'center', y: 'center' });
     }, 1100); // Match the animation duration plus small buffer
   };
 
@@ -1800,6 +1870,43 @@ const ABCJetGame: React.FC = () => {
               </div>
             </div>
 
+            {/* ENERGY METER Section */}
+            <div 
+              className={`bg-black/70 rounded-2xl border-2 border-purple-500/90 backdrop-blur-md ${
+                isMobile() ? 'p-4' : 'p-6'
+              }`}
+              style={{
+                boxShadow: '0 8px 32px rgba(147, 51, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              <div className="flex items-start space-x-3">
+                <span className={`${isMobile() ? 'text-2xl' : 'text-3xl'}`}>⚡</span>
+                <div className="flex-1">
+                  <h3 className={`font-bold mb-3 ${isMobile() ? 'text-lg' : 'text-xl'}`}>
+                    <span className="text-purple-400">ENERGY METER</span> - Double Points Bonus!
+                  </h3>
+                  <div className={`space-y-2 ${isMobile() ? 'text-sm' : 'text-base'}`}>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">🔫</span>
+                      <span className="text-purple-200">Shoot <strong>100 letters</strong> = Fill energy meter</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">⚡</span>
+                      <span className="text-purple-200"><strong>Full meter</strong> = All points doubled for 30 seconds!</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">🎯</span>
+                      <span className="text-purple-200">Works for both <strong>catching</strong> and <strong>shooting</strong> points!</span>
+                    </div>
+                    <div className={`bg-purple-900/30 rounded-lg p-3 ${isMobile() ? 'text-xs' : 'text-sm'}`}>
+                      <p className="text-purple-300 mb-1">Example: Catch correct letter = 4 points (instead of 2)</p>
+                      <p className="text-purple-300">Shoot wrong letter = 2 points (instead of 1)</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* WRONG CATCH Section */}
             <div 
               className={`bg-black/70 rounded-2xl border-2 border-red-500/90 backdrop-blur-md ${
@@ -1945,13 +2052,26 @@ const ABCJetGame: React.FC = () => {
           setIsWatchingAd(false);
           // Show completion message
           alert("פרסומת הושלמה! חוזר למשחק עם חיים נוספים! 🎉");
-          // Continue game with current score but with 1 life restored
-          // Note: currentLetterIndex and score are preserved from previous state
+          // Continue game with current score but with 1 life restored and ship reset to initial position
+          const initialPosition = getInitialShipPosition();
           setGameState(prev => ({
             ...prev,
             penalties: MAX_STRIKES - 1, // Give player 1 life
-            gameOver: false
+            gameOver: false,
+            // Reset ship to initial position
+            ship: {
+              ...prev.ship,
+              x: initialPosition.x,
+              y: initialPosition.y
+            },
+            // Keep energy meter state
+            energyMeter: prev.energyMeter,
+            energyMeterActive: prev.energyMeterActive,
+            energyMeterTimeLeft: prev.energyMeterTimeLeft,
+            lettersShotCount: prev.lettersShotCount
           }));
+          // Reset joystick direction to center to prevent automatic movement
+          setCurrentDirection({ x: 'center', y: 'center' });
           return 0;
         }
         return prev - 1;
@@ -1978,13 +2098,26 @@ const ABCJetGame: React.FC = () => {
           setIsWatchingAd(false);
           // Show completion message
           alert("פרסומת הושלמה! חוזר למשחק עם 3 חיים נוספים! 🎉🎉🎉");
-          // Continue game with current score but with 3 lives restored
-          // Note: currentLetterIndex and score are preserved from previous state
+          // Continue game with current score but with 3 lives restored and ship reset to initial position
+          const initialPosition = getInitialShipPosition();
           setGameState(prev => ({
             ...prev,
             penalties: Math.max(0, MAX_STRIKES - 3), // Give player 3 lives (or reset to 0 if more than 3)
-            gameOver: false
+            gameOver: false,
+            // Reset ship to initial position
+            ship: {
+              ...prev.ship,
+              x: initialPosition.x,
+              y: initialPosition.y
+            },
+            // Keep energy meter state
+            energyMeter: prev.energyMeter,
+            energyMeterActive: prev.energyMeterActive,
+            energyMeterTimeLeft: prev.energyMeterTimeLeft,
+            lettersShotCount: prev.lettersShotCount
           }));
+          // Reset joystick direction to center to prevent automatic movement
+          setCurrentDirection({ x: 'center', y: 'center' });
           return 0;
         }
         return prev - 1;
@@ -2169,6 +2302,47 @@ const ABCJetGame: React.FC = () => {
                     <span className={`text-blue-400 font-bold ${isMobile() ? 'text-sm' : 'text-base'}`} style={{
                       textShadow: '0 0 10px rgba(0, 136, 255, 0.8)'
                     }}>🛡️ {Math.ceil(gameState.shieldTimeLeft / 1000)}s</span>
+                  </div>
+                </div>
+              )}
+              {/* Energy Meter */}
+              <div className="flex justify-between items-center">
+                <span className={`text-purple-300 font-medium uppercase tracking-wide ${isMobile() ? 'text-xs' : 'text-sm'}`}>Energy</span>
+                <div className="flex items-center space-x-1">
+                  <div className={`${isMobile() ? 'w-12 h-2' : 'w-16 h-3'} bg-gray-700 rounded-full overflow-hidden`}>
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        gameState.energyMeterActive 
+                          ? 'bg-gradient-to-r from-purple-400 to-pink-500' 
+                          : 'bg-gradient-to-r from-purple-500 to-blue-500'
+                      }`}
+                      style={{
+                        width: `${gameState.energyMeter}%`,
+                        boxShadow: gameState.energyMeterActive 
+                          ? '0 0 10px rgba(168, 85, 247, 0.8), 0 0 20px rgba(236, 72, 153, 0.6)' 
+                          : '0 0 5px rgba(139, 92, 246, 0.6)'
+                      }}
+                    />
+                  </div>
+                  <span className={`font-bold ${isMobile() ? 'text-xs' : 'text-sm'} ${
+                    gameState.energyMeterActive ? 'text-purple-400' : 'text-purple-300'
+                  }`} style={{
+                    textShadow: gameState.energyMeterActive 
+                      ? '0 0 10px rgba(168, 85, 247, 0.8)' 
+                      : '0 0 5px rgba(139, 92, 246, 0.6)'
+                  }}>
+                    {gameState.energyMeterActive ? 'X2' : `${gameState.energyMeter}%`}
+                  </span>
+                </div>
+              </div>
+              {/* Energy Meter Timer */}
+              {gameState.energyMeterActive && (
+                <div className="flex justify-between items-center">
+                  <span className={`text-pink-300 font-medium uppercase tracking-wide ${isMobile() ? 'text-xs' : 'text-sm'}`}>Bonus</span>
+                  <div className="flex items-center">
+                    <span className={`text-pink-400 font-bold ${isMobile() ? 'text-sm' : 'text-base'}`} style={{
+                      textShadow: '0 0 10px rgba(236, 72, 153, 0.8)'
+                    }}>⚡ {Math.ceil(gameState.energyMeterTimeLeft / 1000)}s</span>
                   </div>
                 </div>
               )}
