@@ -1676,22 +1676,35 @@ const ABCJetGame: React.FC = () => {
   if (gameState.currentScreen === 'instructions') {
     return (
       <div 
-        className="game-container relative w-full h-screen overflow-y-auto"
+        className="game-container relative w-full h-screen"
         style={{
           background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
-          minHeight: isMobile() ? '-webkit-fill-available' : '100vh',
-          WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y'
+          height: isMobile() ? '-webkit-fill-available' : '100vh',
+          overflow: 'hidden',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
         }}
       >
-        {/* Mobile-optimized scrollable container */}
+        {/* Scrollable content container */}
         <div 
-          className={`relative mx-auto ${isMobile() ? 'w-full px-4 py-6' : 'max-w-4xl px-8 py-12'}`}
+          className={`w-full h-full overflow-y-auto instructions-scroll-container`}
           style={{
-            minHeight: isMobile() ? '-webkit-fill-available' : '100vh',
-            paddingBottom: isMobile() ? '120px' : '80px' // Extra space for mobile
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+            scrollBehavior: 'smooth',
+            paddingBottom: isMobile() ? '100px' : '60px'
           }}
         >
+          {/* Content wrapper */}
+          <div 
+            className={`relative mx-auto instructions-content-wrapper ${isMobile() ? 'w-full px-4 py-6' : 'max-w-4xl px-8 py-12'}`}
+            style={{
+              minHeight: '100%'
+            }}
+          >
           {/* Header */}
           <div className="text-center mb-8">
             <h1 
@@ -1913,6 +1926,7 @@ const ABCJetGame: React.FC = () => {
               <span className={`${isMobile() ? 'text-xl' : 'text-lg'} font-bold`}>START GAME</span>
             </button>
           </div>
+        </div>
         </div>
       </div>
     );
