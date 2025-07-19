@@ -131,6 +131,11 @@ All colors MUST be HSL.
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    /* Ensure body is visible */
+    min-height: 100vh;
+    width: 100%;
+    margin: 0;
+    padding: 0;
   }
 
   /* Mobile viewport fix */
@@ -158,6 +163,10 @@ All colors MUST be HSL.
     left: 0;
     right: 0;
     bottom: 0;
+    /* Ensure game container is visible */
+    display: block;
+    z-index: 1;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
   }
 
   .game-canvas {
@@ -169,6 +178,13 @@ All colors MUST be HSL.
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    /* Ensure canvas is visible */
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
   }
 
   .game-ui {
@@ -404,5 +420,168 @@ All colors MUST be HSL.
   }
   100% {
     transform: translateY(100px);
+  }
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Prevent zoom on input focus */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  
+  /* Optimize touch targets */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* Optimize game container for mobile */
+  .game-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Mobile-specific animations */
+  @keyframes mobile-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  @keyframes mobile-glow {
+    0% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); }
+    50% { box-shadow: 0 0 25px rgba(0, 255, 255, 0.8); }
+    100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); }
+  }
+  
+  /* Mobile UI optimizations */
+  .mobile-ui-panel {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  .mobile-btn {
+    transition: all 0.1s ease;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  
+  .mobile-btn:active {
+    transform: scale(0.95);
+  }
+  
+  /* Mobile text optimizations */
+  .neon-title {
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8),
+                 0 0 20px rgba(0, 255, 255, 0.6),
+                 0 0 30px rgba(0, 255, 255, 0.4);
+  }
+  
+  .neon-text {
+    text-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
+  }
+  
+  /* Mobile control optimizations */
+  .mobile-joystick {
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .mobile-shoot-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Mobile performance optimizations */
+  * {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  /* Mobile-specific game optimizations */
+  .game-canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Landscape mobile optimizations */
+@media (max-width: 768px) and (orientation: landscape) {
+  .game-container {
+    /* Adjust for landscape mode */
+  }
+  
+  /* Smaller controls for landscape */
+  .mobile-joystick {
+    transform: scale(0.8);
+  }
+  
+  .mobile-shoot-btn {
+    transform: scale(0.8);
+  }
+}
+
+/* High DPI mobile optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .game-canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Mobile accessibility improvements */
+@media (max-width: 768px) {
+  /* Ensure sufficient color contrast */
+  .text-cyan-300 {
+    color: #67e8f9;
+  }
+  
+  .text-green-300 {
+    color: #86efac;
+  }
+  
+  .text-yellow-400 {
+    color: #facc15;
+  }
+  
+  /* Improve focus indicators */
+  button:focus-visible {
+    outline: 2px solid #67e8f9;
+    outline-offset: 2px;
+  }
+}
+
+/* Mobile performance optimizations */
+@media (max-width: 768px) {
+  /* Reduce animation complexity on mobile */
+  .animate-pulse {
+    animation-duration: 2s;
+  }
+  
+  /* Optimize transitions */
+  .transition-all {
+    transition-duration: 0.1s;
+  }
+  
+  /* Reduce shadow complexity for better performance */
+  .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 }

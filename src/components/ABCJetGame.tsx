@@ -92,6 +92,18 @@ const shootButtonStyles = `
     0% { opacity: 0.8; transform: scale(1); }
     100% { opacity: 1; transform: scale(1.1); }
   }
+  
+  @keyframes pulse {
+    0% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0.7; transform: scale(1); }
+  }
+  
+  @keyframes joystick-glow {
+    0% { box-shadow: 0 0 30px rgba(255, 69, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3); }
+    50% { box-shadow: 0 0 50px rgba(255, 69, 0, 1), inset 0 0 30px rgba(255, 255, 255, 0.5); }
+    100% { box-shadow: 0 0 30px rgba(255, 69, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3); }
+  }
 
   /* Mobile-specific optimizations */
   @media (max-width: 768px) {
@@ -384,7 +396,7 @@ declare global {
   }
 }
 
-// Mobile detection utility with better coverage
+// Enhanced mobile detection
 const isMobile = () => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent) || 
          window.innerWidth <= 768 || 
@@ -392,9 +404,8 @@ const isMobile = () => {
          navigator.maxTouchPoints > 0;
 };
 
-// Always show joystick everywhere - mobile optimized
 const shouldShowJoystick = () => {
-  return true; // Always show joystick for better UX on all devices
+  return isMobile() || 'ontouchstart' in window;
 };
 
 // Game configuration
@@ -470,174 +481,199 @@ interface JoystickProps {
   size?: number;
 }
 
-const Joystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [knobPosition, setKnobPosition] = useState({ x: 0, y: 0 });
+const SimpleJoystick: React.FC<JoystickProps> = ({ onMove, size = 120 }) => {
   const joystickRef = useRef<HTMLDivElement>(null);
+  const [isActive, setIsActive] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   
-  // Optimized joystick size for all devices - mobile first
-  const mobileSize = isMobile() ? Math.min(size, 110) : size;
-  const sensitivity = isMobile() ? 4 : 6;
-
-  const handleStart = useCallback((clientX: number, clientY: number) => {
-    setIsDragging(true);
-    if (joystickRef.current) {
-      const rect = joystickRef.current.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      
-      const deltaX = clientX - centerX;
-      const deltaY = clientY - centerY;
-      
-      // Limit movement to circle with mobile optimization
-      const maxDistance = (mobileSize - 40) / 2;
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      const clampedDistance = Math.min(distance, maxDistance);
-      
-      const angle = Math.atan2(deltaY, deltaX);
-      const x = Math.cos(angle) * clampedDistance;
-      const y = Math.sin(angle) * clampedDistance;
-      
-      setKnobPosition({ x, y });
-      
-      // Determine direction based on X and Y positions - mobile-optimized sensitivity
-      const xDirection = Math.abs(x) > sensitivity ? (x > 0 ? 'right' : 'left') : 'center';
-      const yDirection = Math.abs(y) > sensitivity ? (y > 0 ? 'down' : 'up') : 'center';
-      
-      onMove({ x: xDirection, y: yDirection });
-    }
-  }, [onMove, size]);
-
-  const handleMove = useCallback((clientX: number, clientY: number) => {
-    if (!isDragging || !joystickRef.current) return;
-    
+  const joystickSize = isMobile() ? Math.min(size, 96) : size;
+  const deadZone = joystickSize * 0.2; // 20% dead zone
+  
+  const getJoystickCenter = () => {
+    if (!joystickRef.current) return { x: 0, y: 0 };
     const rect = joystickRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    const deltaX = clientX - centerX;
-    const deltaY = clientY - centerY;
-    
-    // Limit movement to circle with mobile optimization
-    const maxDistance = (mobileSize - 40) / 2;
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    };
+  };
+
+  const calculateDirection = (clientX: number, clientY: number) => {
+    const center = getJoystickCenter();
+    const deltaX = clientX - center.x;
+    const deltaY = clientY - center.y;
     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    const clampedDistance = Math.min(distance, maxDistance);
+    
+    if (distance < deadZone) {
+      return { x: 'center' as const, y: 'center' as const };
+    }
     
     const angle = Math.atan2(deltaY, deltaX);
-    const x = Math.cos(angle) * clampedDistance;
-    const y = Math.sin(angle) * clampedDistance;
+    const normalizedDistance = Math.min(distance / (joystickSize / 2), 1);
     
-    setKnobPosition({ x, y });
+    // Calculate direction based on angle
+    let x: 'left' | 'right' | 'center' = 'center';
+    let y: 'up' | 'down' | 'center' = 'center';
     
-    // Determine direction based on X and Y positions - mobile-optimized sensitivity
-    const xDirection = Math.abs(x) > sensitivity ? (x > 0 ? 'right' : 'left') : 'center';
-    const yDirection = Math.abs(y) > sensitivity ? (y > 0 ? 'down' : 'up') : 'center';
+    if (Math.abs(deltaX) > deadZone) {
+      x = deltaX > 0 ? 'right' : 'left';
+    }
     
-    onMove({ x: xDirection, y: yDirection });
-  }, [isDragging, onMove, size]);
+    if (Math.abs(deltaY) > deadZone) {
+      y = deltaY > 0 ? 'down' : 'up';
+    }
+    
+    return { x, y };
+  };
+
+  const handleStart = useCallback((clientX: number, clientY: number) => {
+    setIsActive(true);
+    const direction = calculateDirection(clientX, clientY);
+    onMove(direction);
+  }, [onMove]);
+
+  const handleMove = useCallback((clientX: number, clientY: number) => {
+    if (!isActive) return;
+    
+    const center = getJoystickCenter();
+    const deltaX = clientX - center.x;
+    const deltaY = clientY - center.y;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    const maxDistance = joystickSize / 2;
+    
+    const clampedDistance = Math.min(distance, maxDistance);
+    const normalizedDistance = distance > 0 ? clampedDistance / distance : 0;
+    
+    setPosition({
+      x: deltaX * normalizedDistance,
+      y: deltaY * normalizedDistance
+    });
+    
+    const direction = calculateDirection(clientX, clientY);
+    onMove(direction);
+  }, [isActive, onMove, joystickSize]);
 
   const handleEnd = useCallback(() => {
-    setIsDragging(false);
-    setKnobPosition({ x: 0, y: 0 });
+    setIsActive(false);
+    setPosition({ x: 0, y: 0 });
     onMove({ x: 'center', y: 'center' });
   }, [onMove]);
 
-  // Mouse events
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    handleStart(e.clientX, e.clientY);
-  }, [handleStart]);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    handleMove(e.clientX, e.clientY);
-  }, [handleMove]);
-
-  const handleMouseUp = useCallback(() => {
-    handleEnd();
-  }, [handleEnd]);
-
-  // Touch events
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    handleStart(touch.clientX, touch.clientY);
-  }, [handleStart]);
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    handleMove(touch.clientX, touch.clientY);
-  }, [handleMove]);
-
-  const handleTouchEnd = useCallback((e: TouchEvent) => {
-    e.preventDefault();
-    handleEnd();
-  }, [handleEnd]);
-
-  // Add global event listeners
   useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd, { passive: false });
-    }
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      handleStart(e.clientX, e.clientY);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      e.preventDefault();
+      handleEnd();
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleStart(touch.clientX, touch.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleMove(touch.clientX, touch.clientY);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      handleEnd();
+    };
+
+    const joystick = joystickRef.current;
+    if (!joystick) return;
+
+    // Mouse events
+    joystick.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    // Touch events
+    joystick.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     return () => {
+      joystick.removeEventListener('mousedown', handleMouseDown);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchmove', handleTouchMove, { passive: false } as EventListenerOptions);
-      document.removeEventListener('touchend', handleTouchEnd, { passive: false } as EventListenerOptions);
+      joystick.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+  }, [handleStart, handleMove, handleEnd]);
 
   return (
     <div
       ref={joystickRef}
-      className="relative select-none mobile-joystick"
+      className="relative cursor-pointer select-none touch-none"
       style={{
-        width: mobileSize,
-        height: mobileSize,
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-        border: isMobile() ? '3px solid #0ff' : '3px solid #0ff',
-        boxShadow: isMobile() 
-          ? '0 0 20px rgba(0, 255, 255, 0.7), inset 0 0 20px rgba(0, 255, 255, 0.2)'
-          : '0 0 25px rgba(0, 255, 255, 0.6), inset 0 0 25px rgba(0, 255, 255, 0.15)',
+        width: joystickSize,
+        height: joystickSize,
         touchAction: 'none',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none',
         WebkitTapHighlightColor: 'transparent'
       }}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
     >
+      {/* Outer ring */}
       <div
-        className="absolute bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full"
+        className="absolute inset-0 rounded-full border-2 border-cyan-500/50"
         style={{
-          width: isMobile() ? 35 : 45,
-          height: isMobile() ? 35 : 45,
-          left: '50%',
-          top: '50%',
-          transform: `translate(-50%, -50%) translate(${knobPosition.x}px, ${knobPosition.y}px)`,
-          boxShadow: isMobile() 
-            ? '0 0 15px rgba(0, 255, 255, 0.9)'
-            : '0 0 20px rgba(0, 255, 255, 0.8)',
-          border: isMobile() ? '2px solid #fff' : '2px solid #fff',
-          transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+          background: 'radial-gradient(circle, rgba(0, 255, 255, 0.1) 0%, rgba(0, 255, 255, 0.05) 50%, transparent 100%)',
+          boxShadow: isActive 
+            ? '0 0 30px rgba(0, 255, 255, 0.8), inset 0 0 20px rgba(0, 255, 255, 0.3)'
+            : '0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.1)',
+          animation: isActive ? 'joystick-glow 1s ease-in-out infinite' : 'none'
         }}
       />
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className={`text-cyan-300 font-bold ${isMobile() ? 'text-xs' : 'text-sm'}`}>
-          MOVE
-        </div>
-      </div>
+      
+      {/* Inner stick */}
+      <div
+        className="absolute rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 border border-cyan-300"
+        style={{
+          width: joystickSize * 0.4,
+          height: joystickSize * 0.4,
+          left: '50%',
+          top: '50%',
+          transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px)`,
+          boxShadow: isActive 
+            ? '0 0 20px rgba(0, 255, 255, 0.9), inset 0 0 10px rgba(255, 255, 255, 0.5)'
+            : '0 0 10px rgba(0, 255, 255, 0.6), inset 0 0 5px rgba(255, 255, 255, 0.3)',
+          transition: isActive ? 'none' : 'all 0.2s ease',
+          zIndex: 10
+        }}
+      />
+      
+      {/* Center indicator */}
+      <div
+        className="absolute rounded-full bg-cyan-300/30"
+        style={{
+          width: joystickSize * 0.1,
+          height: joystickSize * 0.1,
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          boxShadow: '0 0 5px rgba(0, 255, 255, 0.5)'
+        }}
+      />
     </div>
   );
 };
 
 const ABCJetGame: React.FC = () => {
+  console.log('ABCJetGame component loaded');
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
@@ -648,7 +684,7 @@ const ABCJetGame: React.FC = () => {
   const letterIdRef = useRef<number>(0);
   const powerUpIdRef = useRef<number>(0);
   const [currentDirection, setCurrentDirection] = useState<{ x: 'left' | 'right' | 'center', y: 'up' | 'down' | 'center' }>({ x: 'center', y: 'center' });
-  const [keyboardDirection, setKeyboardDirection] = useState<{ x: 'left' | 'right' | 'center', y: 'up' | 'down' | 'center' }>({ x: 'center', y: 'center' });
+
   const [isShooting, setIsShooting] = useState(false);
   const shootIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
@@ -762,68 +798,7 @@ const ABCJetGame: React.FC = () => {
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
-  // Keyboard movement support for desktop (always enabled for better UX)
-  useEffect(() => {
-    // Enable keyboard movement on all devices for better accessibility
-    
-    const keysPressed = new Set<string>();
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (gameState.gameOver) return;
-      
-      const key = e.key.toLowerCase();
-      keysPressed.add(key);
-      
-      // Update keyboard direction based on pressed keys
-      let x: 'left' | 'right' | 'center' = 'center';
-      let y: 'up' | 'down' | 'center' = 'center';
-      
-      if (keysPressed.has('a') || keysPressed.has('arrowleft')) {
-        x = 'left';
-      } else if (keysPressed.has('d') || keysPressed.has('arrowright')) {
-        x = 'right';
-      }
-      
-      if (keysPressed.has('w') || keysPressed.has('arrowup')) {
-        y = 'up';
-      } else if (keysPressed.has('s') || keysPressed.has('arrowdown')) {
-        y = 'down';
-      }
-      
-      setKeyboardDirection({ x, y });
-    };
-    
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      keysPressed.delete(key);
-      
-      // Update keyboard direction based on remaining pressed keys
-      let x: 'left' | 'right' | 'center' = 'center';
-      let y: 'up' | 'down' | 'center' = 'center';
-      
-      if (keysPressed.has('a') || keysPressed.has('arrowleft')) {
-        x = 'left';
-      } else if (keysPressed.has('d') || keysPressed.has('arrowright')) {
-        x = 'right';
-      }
-      
-      if (keysPressed.has('w') || keysPressed.has('arrowup')) {
-        y = 'up';
-      } else if (keysPressed.has('s') || keysPressed.has('arrowdown')) {
-        y = 'down';
-      }
-      
-      setKeyboardDirection({ x, y });
-    };
-    
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [gameState.gameOver]);
+  // Keyboard movement support removed - only joystick movement allowed
 
   // Game loop with mobile optimizations
   const gameLoop = useCallback((currentTime: number) => {
@@ -929,11 +904,8 @@ const ABCJetGame: React.FC = () => {
       let newShipX = newState.ship.x;
       let newShipY = newState.ship.y;
       
-      // Combine joystick and keyboard direction (mobile first, keyboard as backup)
-      const activeDirection = isMobile() ? currentDirection : {
-        x: keyboardDirection.x !== 'center' ? keyboardDirection.x : currentDirection.x,
-        y: keyboardDirection.y !== 'center' ? keyboardDirection.y : currentDirection.y,
-      };
+      // Use only joystick direction
+      const activeDirection = currentDirection;
       
       // Ultra-smooth movement - mobile-optimized
       const moveSpeed = Math.min(deltaTime * (isMobile() ? 0.3 : 0.4), isMobile() ? 10 : 12); // Mobile-optimized speed
@@ -1192,7 +1164,7 @@ const ABCJetGame: React.FC = () => {
     });
 
     animationRef.current = requestAnimationFrame(gameLoop);
-  }, [gameState, currentDirection, keyboardDirection]);
+  }, [gameState, currentDirection]);
 
   // Start game loop
   useEffect(() => {
@@ -1670,11 +1642,6 @@ const ABCJetGame: React.FC = () => {
             </button>
           </div>
         </div>
-        
-        {/* Joystick for Start Screen */}
-        <div className="joystick-container">
-          <Joystick onMove={handleJoystickMove} size={isMobile() ? 120 : 140} />
-        </div>
       </div>
     );
   }
@@ -1710,19 +1677,11 @@ const ABCJetGame: React.FC = () => {
             </div>
             <div className={`bg-black/50 rounded-lg border border-purple-500 ${isMobile() ? 'p-3' : 'p-4'}`}>
               <p className={`mb-2 ${isMobile() ? 'text-base' : 'text-2xl'}`}>🎮 <strong>CONTROLS</strong></p>
-              {isMobile() ? (
-                <div className={`text-purple-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>
-                  <p>🕹️ <strong>Joystick</strong> = Move spaceship</p>
-                  <p>🔴 <strong>Shoot Button</strong> = Fire bullets</p>
-                  <p className="text-purple-200 mt-1">Hold shoot button for continuous firing!</p>
-                </div>
-              ) : (
-                <div className={`text-purple-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>
-                  <p>🕹️ <strong>Joystick</strong> or <strong>WASD/Arrow Keys</strong> = Move</p>
-                  <p>🔴 <strong>Shoot Button</strong> or <strong>Spacebar</strong> = Fire</p>
-                  <p className="text-purple-200 mt-1">Hold controls for continuous action!</p>
-                </div>
-              )}
+              <div className={`text-purple-300 ${isMobile() ? 'text-xs' : 'text-sm'}`}>
+                <p>🕹️ <strong>Joystick</strong> = Move spaceship</p>
+                <p>🔴 <strong>Shoot Button</strong> or <strong>Spacebar</strong> = Fire bullets</p>
+                <p className="text-purple-200 mt-1">Hold shoot button for continuous firing!</p>
+              </div>
             </div>
           </div>
           <div className={`flex mt-6 ${isMobile() ? 'flex-col space-y-3' : 'space-x-4'}`}>
@@ -1746,11 +1705,6 @@ const ABCJetGame: React.FC = () => {
               START
             </button>
           </div>
-        </div>
-        
-        {/* Joystick for Instructions Screen */}
-        <div className="joystick-container">
-          <Joystick onMove={handleJoystickMove} size={isMobile() ? 120 : 140} />
         </div>
       </div>
     );
@@ -1847,28 +1801,42 @@ const ABCJetGame: React.FC = () => {
             </button>
           </div>
         </div>
-        
-        {/* Joystick for Game Over Screen */}
-        <div className="joystick-container">
-          <Joystick onMove={handleJoystickMove} size={isMobile() ? 120 : 140} />
-        </div>
       </div>
     );
   }
 
+  console.log('ABCJetGame rendering main game screen, gameState:', gameState);
+  
   // Game Screen
   return (
-    <div className="game-container">
+    <div className="game-container" style={{
+      position: 'relative',
+      width: '100vw',
+      height: '100vh',
+      overflow: 'hidden',
+      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
+      display: 'block',
+      zIndex: 1,
+      minHeight: '100vh'
+    }}>
       <canvas
         ref={canvasRef}
         width={gameState.gameWidth}
         height={gameState.gameHeight}
         className="game-canvas"
         style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          display: 'block',
           filter: gameState.gameOver ? 'blur(3px)' : 'none',
           transition: 'filter 0.3s ease'
         }}
       />
+      
+
       
       {/* UI Overlay - Mobile Optimized */}
       <div className="game-ui z-40" style={{
@@ -1887,7 +1855,9 @@ const ABCJetGame: React.FC = () => {
               textShadow: '0 0 5px rgba(0, 255, 255, 0.5)',
               touchAction: 'manipulation',
               boxShadow: '0 0 10px rgba(0, 255, 255, 0.3)',
-              pointerEvents: 'auto'
+              pointerEvents: 'auto',
+              minHeight: '44px', // Apple's recommended minimum touch target
+              minWidth: '44px'
             }}
           >
             <ArrowLeft className={`${isMobile() ? 'w-3 h-3' : 'w-4 h-4'}`} />
@@ -1895,9 +1865,9 @@ const ABCJetGame: React.FC = () => {
           </button>
         </div>
         
-        {/* Game Stats - Under Back Button */}
+        {/* Game Stats - Enhanced Mobile Layout */}
         <div className={`absolute ${isMobile() ? 'top-12 left-2' : 'top-16 left-4'} z-50 pointer-events-auto`}>
-          <div className={`mobile-ui-panel bg-black/80 backdrop-blur-sm rounded-lg border border-cyan-500/70 ${isMobile() ? 'p-2 min-w-[150px]' : 'p-3 min-w-[200px]'}`} style={{
+          <div className={`mobile-ui-panel bg-black/80 backdrop-blur-sm rounded-lg border border-cyan-500/70 ${isMobile() ? 'p-2 min-w-[140px]' : 'p-3 min-w-[200px]'}`} style={{
             boxShadow: '0 0 15px rgba(0, 255, 255, 0.3)'
           }}>
             <div className="space-y-1">
@@ -1921,7 +1891,7 @@ const ABCJetGame: React.FC = () => {
                       key={index}
                       src={shootBulletImg} 
                       alt="Life" 
-                      className={`object-contain ${isMobile() ? 'w-5 h-5' : 'w-6 h-6'}`}
+                      className={`object-contain ${isMobile() ? 'w-4 h-4' : 'w-6 h-6'}`}
                       style={{
                         filter: index < (MAX_STRIKES - gameState.penalties)
                           ? 'drop-shadow(0 0 12px rgba(0, 255, 0, 1)) drop-shadow(0 0 20px rgba(0, 255, 0, 0.8)) brightness(1.8) saturate(1.8) contrast(1.3)'
@@ -1948,9 +1918,9 @@ const ABCJetGame: React.FC = () => {
                 <div className="flex justify-between items-center">
                   <span className={`text-blue-300 font-medium uppercase tracking-wide ${isMobile() ? 'text-xs' : 'text-sm'}`}>Shield</span>
                   <div className="flex items-center">
-                                         <span className={`text-blue-400 font-bold ${isMobile() ? 'text-sm' : 'text-base'}`} style={{
-                       textShadow: '0 0 10px rgba(0, 136, 255, 0.8)'
-                     }}>🛡️ {Math.ceil(gameState.shieldTimeLeft / 1000)}s</span>
+                    <span className={`text-blue-400 font-bold ${isMobile() ? 'text-sm' : 'text-base'}`} style={{
+                      textShadow: '0 0 10px rgba(0, 136, 255, 0.8)'
+                    }}>🛡️ {Math.ceil(gameState.shieldTimeLeft / 1000)}s</span>
                   </div>
                 </div>
               )}
@@ -1959,111 +1929,138 @@ const ABCJetGame: React.FC = () => {
         </div>
       </div>
 
-      {/* Controls - Mobile First Design */}
-      <div className="game-controls z-30" style={{
-        filter: gameState.gameOver ? 'blur(1px)' : 'none',
-        opacity: gameState.gameOver ? 0.4 : 1,
-        pointerEvents: 'auto',
-        transition: 'filter 0.3s ease, opacity 0.3s ease',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end'
-      }}>
-        <Joystick onMove={handleJoystickMove} size={isMobile() ? 120 : 140} />
-        
-        <button
-          className="relative rounded-full mobile-shoot-btn"
-          onTouchStart={startShooting}
-          onMouseDown={startShooting}
-          style={{
-            width: isMobile() ? '50px' : '60px',
-            height: isMobile() ? '50px' : '60px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'radial-gradient(circle, rgba(255, 80, 0, 0.9) 0%, rgba(220, 60, 0, 0.8) 50%, rgba(180, 40, 0, 0.7) 100%)',
-            border: isMobile() ? '1px solid rgba(255, 120, 0, 1)' : '2px solid rgba(255, 120, 0, 1)',
-            cursor: 'pointer',
-            outline: 'none',
-            boxShadow: isMobile() 
-              ? '0 0 20px rgba(255, 80, 0, 1), 0 0 40px rgba(220, 60, 0, 1), 0 0 60px rgba(255, 40, 0, 0.6), inset 0 0 12px rgba(255, 150, 0, 0.8)'
-              : '0 0 25px rgba(255, 80, 0, 1), 0 0 50px rgba(220, 60, 0, 1), 0 0 75px rgba(255, 40, 0, 0.6), inset 0 0 15px rgba(255, 150, 0, 0.8)',
-            transition: 'all 0.1s ease',
-            animation: 'shoot-button-pulse 1.5s ease-in-out infinite',
-            touchAction: 'manipulation',
-            WebkitTapHighlightColor: 'transparent'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = '0 0 35px rgba(255, 120, 0, 1), 0 0 70px rgba(255, 80, 0, 1), 0 0 100px rgba(220, 60, 0, 0.8), inset 0 0 20px rgba(255, 180, 0, 0.9)';
-            e.currentTarget.style.transform = 'scale(1.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = '0 0 25px rgba(255, 80, 0, 1), 0 0 50px rgba(220, 60, 0, 1), 0 0 75px rgba(255, 40, 0, 0.6), inset 0 0 15px rgba(255, 150, 0, 0.8)';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-        >
-          <img 
-            src={shootButtonImg} 
-            alt="Shoot" 
-            className={`object-contain ${isMobile() ? 'w-8 h-8' : 'w-10 h-10'}`}
-            style={{
-              filter: isMobile() 
-                ? 'drop-shadow(0 0 8px rgba(255, 255, 255, 1)) drop-shadow(0 0 15px rgba(255, 120, 0, 1)) drop-shadow(0 0 20px rgba(220, 60, 0, 0.8)) brightness(1.5) contrast(1.6) saturate(1.3)'
-                : 'drop-shadow(0 0 10px rgba(255, 255, 255, 1)) drop-shadow(0 0 18px rgba(255, 120, 0, 1)) drop-shadow(0 0 25px rgba(220, 60, 0, 0.8)) brightness(1.5) contrast(1.6) saturate(1.3)',
-              transition: 'transform 0.1s ease'
-            }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.transform = 'scale(0.9)';
-              e.currentTarget.parentElement.style.transform = 'scale(0.95)';
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.parentElement.style.transform = 'scale(1.15)';
-            }}
-          />
-          
-          {/* Outer pulsing ring */}
-          <div 
-            className="absolute inset-0 rounded-full"
-            style={{
-              border: '2px solid rgba(255, 120, 0, 0.9)',
-              transform: 'scale(1.3)',
-              animation: 'shoot-ring-pulse 2s ease-in-out infinite'
-            }}
-          />
-          
-          {/* Inner rotating ring */}
-          <div 
-            className="absolute inset-0 rounded-full"
-            style={{
-              border: '1px solid rgba(255, 150, 0, 0.7)',
-              borderTopColor: 'rgba(255, 220, 0, 1)',
-              borderRightColor: 'rgba(255, 180, 0, 0.9)',
-              transform: 'scale(1.15)',
-              animation: 'shoot-ring-spin 3s linear infinite'
-            }}
-          />
-          
-          {/* Shooting sparks animation */}
-          <div 
-            className="absolute inset-0 rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(255, 120, 0, 0.4) 0%, rgba(255, 80, 0, 0.2) 50%, transparent 70%)',
-              animation: 'shoot-sparks 1s ease-in-out infinite alternate'
-            }}
-          />
-          
-          {/* Extra glow layer */}
-          <div 
-            className="absolute inset-0 rounded-full"
-            style={{
-              border: '1px solid rgba(255, 200, 0, 0.6)',
-              transform: 'scale(1.5)',
-              animation: 'shoot-ring-pulse 2.5s ease-in-out infinite reverse'
-            }}
-          />
-        </button>
-      </div>
+      {/* Enhanced Mobile Controls Layout */}
+      {gameState.currentScreen === 'game' && !gameState.gameOver && (
+        <>
+          {/* Joystick - Left side for mobile */}
+          <div style={{
+            position: 'absolute',
+            bottom: isMobile() ? '30px' : '20px',
+            left: isMobile() ? '30px' : '40%',
+            transform: isMobile() ? 'none' : 'translateX(-50%)',
+            zIndex: 70,
+            pointerEvents: 'auto'
+          }}>
+            <SimpleJoystick 
+              onMove={setCurrentDirection}
+              size={isMobile() ? 80 : 120}
+            />
+          </div>
+
+          {/* Shoot Button - Right side for mobile */}
+          <div style={{
+            position: 'absolute',
+            bottom: isMobile() ? '30px' : '20px',
+            right: isMobile() ? '30px' : '40%',
+            transform: isMobile() ? 'none' : 'translateX(50%)',
+            zIndex: 70,
+            pointerEvents: 'auto'
+          }}>
+            <button
+              className="relative rounded-full mobile-shoot-btn"
+              onTouchStart={startShooting}
+              onMouseDown={startShooting}
+              style={{
+                width: isMobile() ? '70px' : '97px',
+                height: isMobile() ? '70px' : '97px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'radial-gradient(circle, rgba(255, 80, 0, 0.9) 0%, rgba(220, 60, 0, 0.8) 50%, rgba(180, 40, 0, 0.7) 100%)',
+                border: isMobile() ? '2px solid rgba(255, 120, 0, 1)' : '2px solid rgba(255, 120, 0, 1)',
+                cursor: 'pointer',
+                outline: 'none',
+                boxShadow: isMobile() 
+                  ? '0 0 15px rgba(255, 80, 0, 1), 0 0 30px rgba(220, 60, 0, 1), 0 0 45px rgba(255, 40, 0, 0.6), inset 0 0 10px rgba(255, 150, 0, 0.8)'
+                  : '0 0 25px rgba(255, 80, 0, 1), 0 0 50px rgba(220, 60, 0, 1), 0 0 75px rgba(255, 40, 0, 0.6), inset 0 0 15px rgba(255, 150, 0, 0.8)',
+                transition: 'all 0.1s ease',
+                animation: 'shoot-button-pulse 1.5s ease-in-out infinite',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                minHeight: '44px', // Apple's recommended minimum touch target
+                minWidth: '44px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 0 35px rgba(255, 120, 0, 1), 0 0 70px rgba(255, 80, 0, 1), 0 0 100px rgba(220, 60, 0, 0.8), inset 0 0 20px rgba(255, 180, 0, 0.9)';
+                e.currentTarget.style.transform = 'scale(1.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 0 25px rgba(255, 80, 0, 1), 0 0 50px rgba(220, 60, 0, 1), 0 0 75px rgba(255, 40, 0, 0.6), inset 0 0 15px rgba(255, 150, 0, 0.8)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <img 
+                src={shootButtonImg} 
+                alt="Shoot" 
+                className="object-contain"
+                style={{
+                  width: isMobile() ? '56px' : '78px',
+                  height: isMobile() ? '56px' : '78px',
+                  filter: isMobile() 
+                    ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 1)) drop-shadow(0 0 12px rgba(255, 120, 0, 1)) drop-shadow(0 0 16px rgba(220, 60, 0, 0.8)) brightness(1.5) contrast(1.6) saturate(1.3)'
+                    : 'drop-shadow(0 0 10px rgba(255, 255, 255, 1)) drop-shadow(0 0 18px rgba(255, 120, 0, 1)) drop-shadow(0 0 25px rgba(220, 60, 0, 0.8)) brightness(1.5) contrast(1.6) saturate(1.3)',
+                  transition: 'transform 0.1s ease',
+                  objectFit: 'contain',
+                  objectPosition: 'center',
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)'
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'scale(0.9)';
+                  e.currentTarget.parentElement.style.transform = 'scale(0.95)';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.parentElement.style.transform = 'scale(1.15)';
+                }}
+              />
+            
+            {/* Outer pulsing ring */}
+            <div 
+              className="absolute inset-0 rounded-full"
+              style={{
+                border: '2px solid rgba(255, 120, 0, 0.9)',
+                transform: 'scale(1.3)',
+                animation: 'shoot-ring-pulse 2s ease-in-out infinite'
+              }}
+            />
+            
+            {/* Inner rotating ring */}
+            <div 
+              className="absolute inset-0 rounded-full"
+              style={{
+                border: '1px solid rgba(255, 150, 0, 0.7)',
+                borderTopColor: 'rgba(255, 220, 0, 1)',
+                borderRightColor: 'rgba(255, 180, 0, 0.9)',
+                transform: 'scale(1.15)',
+                animation: 'shoot-ring-spin 3s linear infinite'
+              }}
+            />
+            
+            {/* Shooting sparks animation */}
+            <div 
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(255, 120, 0, 0.4) 0%, rgba(255, 80, 0, 0.2) 50%, transparent 70%)',
+                animation: 'shoot-sparks 1s ease-in-out infinite alternate'
+              }}
+            />
+            
+            {/* Extra glow layer */}
+            <div 
+              className="absolute inset-0 rounded-full"
+              style={{
+                border: '1px solid rgba(255, 200, 0, 0.6)',
+                transform: 'scale(1.5)',
+                animation: 'shoot-ring-pulse 2.5s ease-in-out infinite reverse'
+              }}
+            />
+          </button>
+        </div>
+      </>
+      )}
 
       {/* Game Over Overlay */}
       {gameState.gameOver && (
